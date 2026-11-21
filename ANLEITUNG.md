@@ -1,4 +1,4 @@
-# Haushalt-App aufs iPhone bringen
+# Alltagsheld aufs iPhone bringen
 
 Die App ist eine Web-App. Du lädst sie einmal ins Internet hoch und legst sie dann vom iPhone aus auf den Home-Bildschirm. Danach startet sie wie eine normale App: im Vollbild, mit eigenem Symbol, und auch offline. Alle Daten bleiben auf deinem iPhone.
 
@@ -8,17 +8,21 @@ Am besten machst du das am Computer.
 
 1. Lege auf github.com ein kostenloses Konto an.
 2. Klick oben rechts auf **+** und dann auf **New repository**. Gib als Name `haushalt` ein, wähle **Public** und klick auf **Create repository**. Mit einem kostenlosen Konto muss das Projekt öffentlich sein, sonst lässt sich GitHub Pages nicht einschalten. Öffentlich ist dabei nur der Programmcode der App. Deine Einkaufslisten, Vorräte und To-dos liegen nur auf deinem iPhone und landen nie bei GitHub.
-3. Klick auf **uploading an existing file**. Zieh alle Dateien aus dem entpackten ZIP-Ordner in das Fenster (nur die Dateien, nicht den Ordner selbst). Klick dann auf **Commit changes**.
+3. Nach dem Anlegen siehst du eine Seite mit der Überschrift **„Quick setup“**. Etwas darunter steht der Satz „Get started by creating a new file or **uploading an existing file**“. Klick dort auf den blauen Link **uploading an existing file**.
+   - Siehst du diese Seite nicht, weil z. B. schon eine README-Datei angelegt wurde, klick oben rechts in der Dateiliste auf **Add file** und dann auf **Upload files**.
+   - Entpacke vorher die ZIP-Datei mit einem Doppelklick.
+   - Zieh alle Dateien aus dem entpackten Ordner in das Fenster (nur die Dateien, nicht den Ordner selbst). Du kannst auch auf **choose your files** klicken, die Dateien auswählen (am Mac alle mit Cmd+A, unter Windows mit Strg+A) und dann auf **Öffnen** klicken.
+   - Warte, bis alle 12 Dateien in der Liste stehen, und klick unten auf den grünen Knopf **Commit changes**.
 4. Geh zu **Settings**, dann **Pages**. Stell unter „Branch“ `main` und `/ (root)` ein und klick auf **Save**.
-5. Nach etwa 1 Minute steht oben die Adresse, z. B. `https://DEINNAME.github.io/haushalt/`.
+5. Warte 1–5 Minuten und lade dann dieselbe Seite neu (**Settings**, dann **Pages**). Ganz oben, direkt unter der Überschrift „GitHub Pages“, erscheint ein Kasten mit „Your site is live at …“ und einem Knopf **Visit site**. Dort steht deine Adresse, z. B. `https://DEINNAME.github.io/haushalt/`.
 
 Es gibt eine Alternative ohne GitHub: Auf app.netlify.com/drop ziehst du den Ordner ins Fenster. Damit die Seite nicht nach einer Stunde gelöscht wird, brauchst du ein kostenloses Konto.
 
 ## 2. Auf dem iPhone installieren
 
-1. Öffne die Adresse in **Safari**. Andere Browser funktionieren dafür nicht.
+1. Öffne die Adresse in **Safari**. Andere Browser funktionieren dafür nicht. Safari ist auf jedem iPhone vorinstalliert. Findest du es nicht, wisch auf dem Home-Bildschirm nach unten und such nach „Safari“. Wurde es gelöscht, kannst du es kostenlos im App Store wieder laden.
 2. Tipp unten auf das **Teilen-Symbol** (Quadrat mit Pfeil) und dann auf **Zum Home-Bildschirm** und **Hinzufügen**.
-3. Starte die App ab jetzt immer über das neue Symbol „Haushalt“.
+3. Starte die App ab jetzt immer über das neue Symbol „Alltagsheld“.
 4. Beim ersten Scannen fragt das iPhone, ob die App die Kamera benutzen darf. Tipp auf **Erlauben**. Beim ersten Mikrofon-Tippen fragt es nach dem Mikrofon.
 5. Unter **Mehr**, dann **Mitteilungen erlauben**, schaltest du Erinnerungen ein, die erscheinen, solange die App läuft.
 
@@ -74,3 +78,16 @@ Den Schlüssel trägst du unter **Mehr** ein, dann **KI-Zusatz**. Ohne Schlüsse
 ## Daten sichern
 
 Unter **Mehr**, dann **Sicherung speichern**, sicherst du deine Daten, z. B. in iCloud Drive. Mit „Sicherung laden“ holst du sie zurück, auch auf ein neues iPhone.
+
+## Probleme?
+
+**Die Adresse steht nicht bei „Pages“:**
+- Auf der Startseite deines Projekts siehst du rechts (am Handy weiter unten) den Bereich **Deployments** mit dem Eintrag **github-pages**. Tipp darauf, dort steht die Adresse.
+- Unter dem Reiter **Actions** siehst du, ob die Seite noch gebaut wird (gelber Punkt) oder fertig ist (grüner Haken).
+- Die Adresse ist immer `https://DEINNAME.github.io/haushalt/`, mit deinem GitHub-Benutzernamen in Kleinbuchstaben.
+
+**„404 – File not found“ beim Öffnen der Adresse:**
+- **Kurz warten.** Nach dem Speichern in „Settings“ und „Pages“ dauert es 1–5 Minuten, bis die Seite online ist. Lade sie danach neu.
+- **Prüfe, ob GitHub Pages eingeschaltet ist.** Unter „Settings“ und „Pages“ muss „Branch: main“ und „/ (root)“ ausgewählt und gespeichert sein. Ist alles fertig, steht oben „Your site is live at …“.
+- **Prüfe, ob die Dateien direkt im Projekt liegen.** Auf der Startseite deines Projekts muss `index.html` direkt in der Liste stehen. Siehst du dort nur einen Ordner wie `haushalt-app`, wurde der Ordner statt der Dateien hochgeladen. Dann lösch das Projekt und lade nur die Dateien hoch.
+- **Prüfe die Adresse.** Sie muss genau `https://DEINNAME.github.io/haushalt/` lauten. DEINNAME ist dein GitHub-Benutzername in Kleinbuchstaben, `haushalt` ist der Name des Projekts, und am Ende steht ein Schrägstrich.

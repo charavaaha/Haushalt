@@ -1,4 +1,4 @@
-/* Haushalt – App-Logik. Läuft komplett lokal; Internet nur für Produktinfos (Open Food Facts) und optional KI. */
+/* Alltagsheld – App-Logik. Läuft komplett lokal; Internet nur für Produktinfos (Open Food Facts) und optional KI. */
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
@@ -232,9 +232,9 @@ function icsDate(s, addMin) { const d = new Date(new Date(s).getTime() + (addMin
 const icsEsc = s => String(s).replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n');
 function buildICS(list) {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-  const ev = list.filter(t => t && t.due).map(t => ['BEGIN:VEVENT', 'UID:' + t.id + '@haushalt-app', 'DTSTAMP:' + stamp, 'DTSTART:' + icsDate(t.due), 'DTEND:' + icsDate(t.due, 30), 'SUMMARY:' + icsEsc(t.title), 'DESCRIPTION:' + icsEsc('Aus der Haushalt-App'),
+  const ev = list.filter(t => t && t.due).map(t => ['BEGIN:VEVENT', 'UID:' + t.id + '@alltagsheld', 'DTSTAMP:' + stamp, 'DTSTART:' + icsDate(t.due), 'DTEND:' + icsDate(t.due, 30), 'SUMMARY:' + icsEsc(t.title), 'DESCRIPTION:' + icsEsc('Aus Alltagsheld'),
     'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(t.title), 'TRIGGER:-PT' + (+t.remind || 0) + 'M', 'END:VALARM', 'END:VEVENT'].join('\r\n'));
-  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Haushalt App//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', ...ev, 'END:VCALENDAR'].join('\r\n');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Alltagsheld//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', ...ev, 'END:VCALENDAR'].join('\r\n');
 }
 function openICS(list) {
   const blob = new Blob([buildICS(list)], { type: 'text/calendar;charset=utf-8' });
@@ -243,7 +243,7 @@ function openICS(list) {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 function gcal(t) { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Berlin';
-  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(t.title) + '&dates=' + icsDate(t.due) + '/' + icsDate(t.due, 30) + '&ctz=' + encodeURIComponent(tz) + '&details=' + encodeURIComponent('Aus der Haushalt-App'); }
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(t.title) + '&dates=' + icsDate(t.due) + '/' + icsDate(t.due, 30) + '&ctz=' + encodeURIComponent(tz) + '&details=' + encodeURIComponent('Aus Alltagsheld'); }
 
 /* ================= Erinnerungen (solange die App läuft) ================= */
 async function notify(title, body) {
@@ -523,14 +523,14 @@ $('testKey').onclick = async () => { $('keyState').textContent = 'teste …'; tr
 function applyAIui() { $('aiRec').hidden = !AI.key; }
 $('exportBtn').onclick = async () => {
   const data = JSON.stringify(Object.assign({ app: 'haushalt', version: 2, exported: new Date().toISOString() }, S), null, 1);
-  const name = 'haushalt-sicherung-' + new Date().toISOString().slice(0, 10) + '.json';
-  try { const file = new File([data], name, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Haushalt-Sicherung' }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+  const name = 'alltagsheld-sicherung-' + new Date().toISOString().slice(0, 10) + '.json';
+  try { const file = new File([data], name, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Alltagsheld-Sicherung' }); return; } } catch (e) { if (e.name === 'AbortError') return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' })); a.download = name; a.click();
 };
 $('importFile').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try { const d = JSON.parse(await f.text()); if (!d || !Array.isArray(d.pantry)) throw 0; snap(); S = { shopping: d.shopping || [], pantry: d.pantry || [], todos: d.todos || [], catalog: d.catalog || {}, recipes: [], learn: Object.assign(LDEF(), d.learn || {}), settings: Object.assign({ ask: true, speak: false, suggest: true }, d.settings || {}) }; save(); renderSettings(); toast('Sicherung geladen.', true); }
-  catch (err) { toast('Das ist keine gültige Haushalt-Sicherung.'); }
+  catch (err) { toast('Das ist keine gültige Alltagsheld-Sicherung.'); }
 });
 $('wipe').onclick = () => { if ($('wipe').dataset.sure) { snap(); S = { shopping: [], pantry: [], todos: [], catalog: {}, recipes: [], learn: LDEF(), settings: S.settings }; save(); renderSettings(); toast('Alle Daten gelöscht.', true); delete $('wipe').dataset.sure; $('wipe').textContent = 'Alle Daten löschen'; } else { $('wipe').dataset.sure = 1; $('wipe').textContent = 'Wirklich alles löschen? Nochmal tippen'; setTimeout(() => { delete $('wipe').dataset.sure; $('wipe').textContent = 'Alle Daten löschen'; }, 4000); } };
 
