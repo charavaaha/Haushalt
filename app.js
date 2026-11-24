@@ -16,10 +16,10 @@ let AI = { key: '', model: 'claude-haiku-5-5' };
 try { Object.assign(AI, JSON.parse(localStorage.getItem(KKEY) || '{}')); } catch (e) {}
 const LDEF = () => ({ buys: {}, order: {}, aliases: {}, recipe: {}, tags: {}, dismissed: {}, trip: { at: 0, idx: 0 } });
 S.learn = Object.assign(LDEF(), S.learn || {});
-S.settings = Object.assign({ ask: true, speak: false, suggest: true, micMode: 'auto', palette: 'blau', diet: 'vegan', groupShop: true }, S.settings || {});
+S.settings = Object.assign({ ask: true, speak: false, suggest: true, micMode: 'auto', palette: 'blau', diet: 'vegan', groupShop: true, portions: 2 }, S.settings || {});
 S.plan = S.plan || {}; S.stats = Object.assign({ used: {}, wasted: {} }, S.stats || {}); S.hero = Object.assign({ points: 0, days: [] }, S.hero || {});
 delete S.settings.kbdDictation;
-const APP_VERSION = '2.1.1 (24.11.2026)';
+const APP_VERSION = '2.2 (24.11.2026)';
 let undoSnap = null;
 function snap() { undoSnap = JSON.stringify(S); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Speichern fehlgeschlagen – Speicher voll?'); } render(); }
@@ -198,7 +198,7 @@ function renderToday() {
   if (exp.length) cards.push(`<div class="tcard"><h3>⏳ Bald ablaufend</h3><div>${esc(exp.slice(0, 6).map(p => { const d = daysUntil(p.exp); return p.name + (d < 0 ? ' (abgelaufen)' : d === 0 ? ' (heute)' : d === 1 ? ' (morgen)' : ''); }).join(', '))}</div><div class="opts"><button class="mini" data-a="expRec">Rezept dazu</button></div></div>`);
   if (sug.length) cards.push(`<div class="tcard"><h3>🔁 Bald wieder kaufen?</h3><div class="opts">${sug.map(x => `<span class="sug"><button class="mini" data-a="sugAdd" data-k="${esc(x.k)}" title="kaufst du etwa alle ${x.avg} Tage">+ ${esc(x.name)}</button><button class="mini x2" data-a="sugNo" data-k="${esc(x.k)}" aria-label="Nicht jetzt">×</button></span>`).join('')}${sug.length > 1 ? '<button class="mini" data-a="sugAll">Alle hinzufügen</button>' : ''}</div></div>`);
   const pl = S.plan[dayKey(new Date())];
-  if (pl) cards.unshift(`<div class="tcard"><h3>🍽 Heute gibt's</h3><div><b>${esc(pl.title)}</b></div><div class="opts"><button class="mini" data-a="todayRecipe">Rezept ansehen</button></div></div>`);
+  if (pl) cards.unshift(`<div class="tcard"><h3>🍽 Heute gibt's</h3><div><b>${esc(pl.title)}</b>${pl.por ? ` <span class="meta">· ${pl.por} ${pl.por === 1 ? 'Portion' : 'Portionen'}${pl.nutr && pl.nutr.kcal ? ' · ~' + Math.round(pl.nutr.kcal) + ' kcal pro Portion' : ''}</span>` : ''}</div><div class="opts"><button class="mini" data-a="todayRecipe">Rezept ansehen</button></div></div>`);
   const m = monthKey(), used = S.stats.used[m] || 0, wasted = S.stats.wasted[m] || 0;
   if (used + wasted > 0) cards.push(`<div class="tcard"><h3>♻️ Reste-Bilanz ${MONTHS[new Date().getMonth()]}</h3><div>${used} verbraucht · ${wasted} weggeworfen – <b>${Math.round(used / (used + wasted) * 100)} % gerettet</b></div><div class="meta">${WASTE_TIPS[new Date().getDate() % WASTE_TIPS.length]}</div></div>`);
   cards.push(`<div class="tcard"><h3>🌱 Gerade Saison</h3><div class="meta">${esc(seasonNow().slice(0, 10).join(', '))}</div><div class="opts"><button class="mini" data-a="seasonRec">Saison-Rezepte</button></div></div>`);
@@ -260,6 +260,7 @@ document.body.addEventListener('click', e => {
   if (a === 'ics') { e.preventDefault(); const t = S.todos.find(x => x.id === id); openICS([t]); t.inCal = true; save(); return; }
   if (a === 'panEdit') { openPan(S.pantry.find(x => x.id === id)); return; }
   if (a === 'seasonRec') { $('recHint').value = 'Saison'; go('rezepte'); localRecipes(); return; }
+  if (a === 'recPor') { setPortions(+b.dataset.i, +b.dataset.d); return; }
   if (a === 'recPlan') { planRecipe(curRecipes[+b.dataset.i]); return; }
   if (a === 'planDel') { delete S.plan[b.dataset.day]; save(); renderPlan(); return; }
   if (a === 'timer') { startCookTimer(+b.dataset.m, b.dataset.t); return; }
@@ -668,14 +669,27 @@ async function readLabel(file) {
 /* ================= Rezepte ================= */
 let curRecipes = [];
 function pantryForRecipes() { return S.pantry.map(p => { const d = daysUntil(p.exp); return { name: p.name, soon: d !== null && d <= 3 }; }); }
-function renderRecipes(list, note) {
-  curRecipes = list;
-  $('recList').innerHTML = list.map((r, i) => `<article class="rc"><h3>${esc(r.title)}</h3><div>${r.time ? `<span class="tag">${esc(r.time)}</span>` : ''}${r.vegan ? '<span class="tag vegan">vegan</span>' : r.veg ? '<span class="tag">vegetarisch</span>' : ''}${r.liked ? '<span class="tag">❤ mag ich</span>' : ''}${r.soon ? '<span class="tag warn">nutzt Bald-Ablaufendes</span>' : ''}${r.season ? '<span class="tag vegan">🌱 Saison</span>' : ''}${r.ai ? '<span class="tag">KI</span>' : ''}</div>
+const nutrTxt = n => n && n.kcal ? `${Math.round(n.kcal)} kcal · ${Math.round(n.protein || 0)} g Eiweiß · ${Math.round(n.carbs || 0)} g Kohlenhydrate · ${Math.round(n.fat || 0)} g Fett` : '';
+function recCard(r, i) {
+  const por = r.por = Math.max(1, Math.min(12, +r.por || +S.settings.portions || 2)), f = r.serv ? por / r.serv : 1, n = r.nutr;
+  return `<article class="rc" data-ri="${i}"><h3>${esc(r.title)}</h3><div>${r.time ? `<span class="tag">${esc(r.time)}</span>` : ''}${n && n.kcal ? `<span class="tag">~${Math.round(n.kcal)} kcal/Portion</span>` : ''}${r.vegan ? '<span class="tag vegan">vegan</span>' : r.veg ? '<span class="tag">vegetarisch</span>' : ''}${r.liked ? '<span class="tag">❤ mag ich</span>' : ''}${r.soon ? '<span class="tag warn">nutzt Bald-Ablaufendes</span>' : ''}${r.season ? '<span class="tag vegan">🌱 Saison</span>' : ''}${r.ai ? '<span class="tag">KI</span>' : ''}</div>
     <div class="meta"><strong>Hast du:</strong> ${esc((r.uses || []).join(', ') || '–')}</div>
     ${(r.missing || []).length ? `<div class="miss"><strong>Fehlt:</strong> ${esc(r.missing.join(', '))}</div><button class="btn2" data-a="recShop" data-i="${i}">Fehlendes auf die Liste</button>` : '<div><span class="tag">alles da 👍</span></div>'}
-    <details><summary>Zubereitung</summary><ol>${(r.steps || []).map(s => `<li>${stepHTML(s, r.title)}</li>`).join('')}</ol></details>
-    <div class="row"><button class="btn2 mini2" data-a="recPlan" data-i="${i}">📅 Planen</button><button class="btn2 mini2" data-a="recCooked" data-i="${i}">👍 Gekocht</button><button class="btn2 mini2" data-a="recNo" data-i="${i}">👎 Nicht mein Fall</button></div></article>`).join('');
+    <div class="por"><button class="btn2 mini2" data-a="recPor" data-d="-1" data-i="${i}" aria-label="Eine Portion weniger"${por <= 1 ? ' disabled' : ''}>−</button><span><b>${por}</b> ${por === 1 ? 'Portion' : 'Portionen'}</span><button class="btn2 mini2" data-a="recPor" data-d="1" data-i="${i}" aria-label="Eine Portion mehr"${por >= 12 ? ' disabled' : ''}>+</button></div>
+    ${n && n.kcal ? `<details class="nutr"><summary>Nährwerte (ca.)</summary><table><tr><th></th><th>pro Portion</th><th>gesamt (${por})</th></tr>${[['Energie', 'kcal', 'kcal'], ['Eiweiß', 'protein', 'g'], ['Kohlenhydrate', 'carbs', 'g'], ['Fett', 'fat', 'g']].map(([l, k, u]) => `<tr><td>${l}</td><td>${Math.round(n[k] || 0)} ${u}</td><td>${Math.round((n[k] || 0) * por)} ${u}</td></tr>`).join('')}</table><p class="meta">Grobe Schätzwerte – je nach Zutaten und Marke abweichend.</p></details>` : ''}
+    <details class="steps"><summary>Zubereitung${r.serv ? ` <span class="meta">(Mengen für ${por} ${por === 1 ? 'Portion' : 'Portionen'})</span>` : ''}</summary><ol>${(r.steps || []).map(st => `<li>${stepHTML(window.HRecipes.scaleText(st, f), r.title)}</li>`).join('')}</ol></details>
+    <div class="row"><button class="btn2 mini2" data-a="recPlan" data-i="${i}">📅 Planen</button><button class="btn2 mini2" data-a="recCooked" data-i="${i}">👍 Gekocht</button><button class="btn2 mini2" data-a="recNo" data-i="${i}">👎 Nicht mein Fall</button></div></article>`;
+}
+function renderRecipes(list, note) {
+  curRecipes = list;
+  $('recList').innerHTML = list.map(recCard).join('');
   $('recStatus').textContent = note || '';
+}
+function setPortions(i, d) {
+  const r = curRecipes[i], el = document.querySelector(`#recList [data-ri="${i}"]`); if (!r || !el) return;
+  r.por = Math.max(1, Math.min(12, (r.por || 2) + d));
+  const open = [...el.querySelectorAll('details')].map(x => x.open); el.outerHTML = recCard(r, i);
+  document.querySelectorAll(`#recList [data-ri="${i}"] details`).forEach((x, k) => { x.open = !!open[k]; });
 }
 function localRecipes() {
   try { syncChips(); } catch (e) {}
@@ -684,7 +698,7 @@ function localRecipes() {
   const list = window.HRecipes.suggest(pantryForRecipes(), hint, 8, { recipe: L().recipe, tags: L().tags, season: seasonNow() });
   renderPlan(); renderSeason();
   renderRecipes(list, !S.pantry.length ? 'Dein Vorrat ist noch leer – hier ein paar Ideen. Trage Vorräte ein für passende Vorschläge.' : list.length ? '' : 'Keine passenden Rezepte gefunden – probiere andere Wünsche.');
-  if (!S.pantry.length && !list.length) renderRecipes(window.HRecipes.recipes.slice(0, 6).map(r => ({ title: r.title, time: r.time + ' Min.', veg: r.veg, uses: [], missing: r.ing.map(a => a[0]), steps: r.steps })), 'Dein Vorrat ist noch leer – hier ein paar Ideen.');
+  if (!S.pantry.length && !list.length) renderRecipes(window.HRecipes.recipes.slice(0, 6).map(r => ({ title: r.title, time: r.time + ' Min.', veg: r.veg, vegan: r.vegan, uses: [], missing: r.ing.map(a => a[0]), steps: r.steps, serv: r.serv, nutr: r.nutr })), 'Dein Vorrat ist noch leer – hier ein paar Ideen.');
 }
 $('recForm').addEventListener('submit', e => { e.preventDefault(); localRecipes(); });
 function syncChips() { const v = norm($('recHint').value); document.querySelectorAll('#recChips [data-h]').forEach(b => b.classList.toggle('on', v.split(' ').includes(norm(b.dataset.h)))); }
@@ -696,8 +710,8 @@ $('aiRec').onclick = async () => {
   if (!navigator.onLine) { $('recStatus').textContent = 'Für KI-Ideen brauchst du Internet.'; return; }
   $('recStatus').textContent = 'KI denkt sich Rezepte aus …'; $('aiRec').disabled = true;
   const pan = S.pantry.map(p => { const d = daysUntil(p.exp); return p.name + (d !== null && d <= 3 ? ' [läuft bald ab]' : ''); }).join('; ') || 'leer';
-  try { const r = await aiJSON(`Vorrat: ${pan}. Wünsche: ${$('recHint').value || 'keine'}. Salz, Pfeffer, Öl, Zucker vorhanden. Schlage 4 alltagstaugliche Rezepte vor, die möglichst viel aus dem Vorrat nutzen und bald Ablaufendes bevorzugen. Antworte NUR mit JSON: {"recipes":[{"title":"","time":"25 Min.","veg":true,"vegan":false,"uses":["aus dem Vorrat"],"missing":["fehlende Zutat mit Menge"],"steps":["kurze Schritte"]}]}`, 2500);
-    renderRecipes((r.recipes || []).map(x => Object.assign(x, { ai: true })));
+  try { const r = await aiJSON(`Vorrat: ${pan}. Wünsche: ${$('recHint').value || 'keine'}. Salz, Pfeffer, Öl, Zucker vorhanden. Schlage 4 alltagstaugliche Rezepte vor, die möglichst viel aus dem Vorrat nutzen und bald Ablaufendes bevorzugen. Antworte NUR mit JSON: {"recipes":[{"title":"","time":"25 Min.","veg":true,"vegan":false,"uses":["aus dem Vorrat"],"missing":["fehlende Zutat mit Menge"],"steps":["kurze Schritte mit Mengenangaben"],"servings":2,"nutr":{"kcal":0,"protein":0,"carbs":0,"fat":0}}]}. Mengen in den Schritten gelten für "servings" Portionen; "nutr" sind realistische Schätzwerte pro Portion (kcal und Gramm).`, 2500);
+    renderRecipes((r.recipes || []).map(x => Object.assign(x, { ai: true, serv: +x.servings || 0, nutr: x.nutr && +x.nutr.kcal > 0 ? x.nutr : null })));
   } catch (e) { $('recStatus').textContent = 'KI-Fehler: ' + e.message; }
   $('aiRec').disabled = false;
 };
@@ -714,13 +728,13 @@ function cleanPlan() { const y = new Date(); y.setDate(y.getDate() - 1); const y
 function renderPlan() {
   cleanPlan(); const days = planDays(), any = days.some(d => S.plan[d.k]);
   $('planList').innerHTML = days.map(d => { const p = S.plan[d.k];
-    return `<li data-day="${d.k}"><div class="main"><span class="meta" style="display:inline-block;min-width:78px">${esc(d.label)}</span> ${p ? `<b>${esc(p.title)}</b>` : '<span class="meta">– frei –</span>'}</div>${p ? `<button class="x" data-a="planDel" data-day="${d.k}" aria-label="Aus dem Plan nehmen">×</button>` : ''}</li>`; }).join('');
+    return `<li data-day="${d.k}"><div class="main"><span class="meta" style="display:inline-block;min-width:78px">${esc(d.label)}</span> ${p ? `<b>${esc(p.title)}</b>${p.por ? ` <span class="meta">· ${p.por} Port.${p.nutr && p.nutr.kcal ? ' · ~' + Math.round(p.nutr.kcal) + ' kcal' : ''}</span>` : ''}` : '<span class="meta">– frei –</span>'}</div>${p ? `<button class="x" data-a="planDel" data-day="${d.k}" aria-label="Aus dem Plan nehmen">×</button>` : ''}</li>`; }).join('');
   $('planShop').hidden = !any;
 }
 function planRecipe(r) {
   const days = planDays();
   ask('An welchem Tag gibt es „' + r.title + '“?', days.map(d => ({ label: d.label + (S.plan[d.k] ? ' (belegt)' : ''), fn: () => {
-    S.plan[d.k] = { title: r.title, ing: r.ing || [...(r.uses || []), ...(r.missing || [])].map(x => [x]), steps: r.steps || [] }; renderPlan(); toast('Eingeplant: ' + r.title + ' – ' + d.label); } })), true);
+    S.plan[d.k] = { title: r.title, ing: r.ing || [...(r.uses || []), ...(r.missing || [])].map(x => [x]), steps: r.steps || [], serv: r.serv || 0, nutr: r.nutr || null, por: r.por || S.settings.portions || 2, time: r.time || '', veg: r.veg, vegan: r.vegan }; renderPlan(); toast('Eingeplant: ' + r.title + ' – ' + d.label); } })), true);
 }
 function pantryHas(alts) { const pn = S.pantry.map(p => norm(p.name)); return alts.some(a => { const an = norm(a); return pn.some(p => p === an || (an.length > 3 && (p.includes(an) || an.includes(p)))); }); }
 function shopFromPlan() {
@@ -768,7 +782,7 @@ const emptyLi = (ill, txt) => `<li class="empty ill">${ILL[ill]}<div>${txt}</div
 
 /* ================= Einstellungen ================= */
 function renderSettings() {
-  $('setPalette').value = S.settings.palette || 'blau'; $('setDiet').value = S.settings.diet || 'vegan';
+  $('setPalette').value = S.settings.palette || 'blau'; $('setDiet').value = S.settings.diet || 'vegan'; $('setPortions').value = String(S.settings.portions || 2);
   $('cmdLink').textContent = location.origin + location.pathname + '?cmd=Milch%20kaufen';
   $('setMic').value = S.settings.micMode || 'auto'; $('setAsk').checked = S.settings.ask; $('setSpeak').checked = S.settings.speak; $('setSuggest').checked = S.settings.suggest;
   const rh = Object.values(L().buys).filter(b => rhythm(b)).length, liked = Object.values(L().recipe).filter(v => v > 0).length, disl = Object.values(L().recipe).filter(v => v < 0).length;
@@ -816,6 +830,7 @@ $('pasteBtn').onclick = async () => {
     const t = qc.trim().slice(0, 300); if (!t) return; $('cmd').value = t;
     setTimeout(() => ask('Befehl aus Link ausführen: „' + t + '“?', [{ label: 'Ausführen', fn: () => runCommand(t) }, { label: 'Abbrechen', fn: () => { $('cmd').value = ''; } }], true), 400); } })();
 $('setPalette').addEventListener('change', () => { S.settings.palette = $('setPalette').value; applyPalette(); save(); });
+$('setPortions').addEventListener('change', () => { S.settings.portions = +$('setPortions').value || 2; save(); $('recList').innerHTML = ''; });
 $('setDiet').addEventListener('change', () => { S.settings.diet = $('setDiet').value; save(); $('recList').innerHTML = ''; });
 
 $('planShop').onclick = shopFromPlan;

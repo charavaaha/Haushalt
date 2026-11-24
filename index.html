@@ -46,7 +46,9 @@ header{background:var(--pri);color:#fff;padding:calc(var(--st) + 8px) 16px 12px}
 .today .tg{font-weight:700;font-family:ui-rounded,-apple-system,system-ui,sans-serif;font-size:17px}.today a{color:inherit;font-weight:600}
 .today .opts{margin-top:0}.today .opts button.mini{background:var(--pri);color:#fff}.today .opts button.x2{background:var(--pri2);color:#fff}.mini{min-height:34px;font-size:14px;padding:0 10px;background:var(--pri);color:#fff;border-radius:10px}
 .sug{display:inline-flex}.sug .mini{border-radius:10px 0 0 10px}.sug .x2{border-radius:0 10px 10px 0;background:var(--pri2);padding:0 8px}
-.mini2{min-height:36px;font-size:14px}.tag.vegan{color:#2e7d32;border-color:currentColor}
+.mini2{min-height:36px;font-size:14px}
+.por{display:flex;align-items:center;gap:10px;margin:8px 0 2px}.por .btn2{min-width:40px;padding:0 10px;font-size:18px;font-weight:700}.por button:disabled{opacity:.4}
+details.nutr table{border-collapse:collapse;width:100%;font-size:14px;margin-top:6px}details.nutr th,details.nutr td{text-align:right;padding:3px 6px;border-bottom:1px solid var(--line)}details.nutr th:first-child,details.nutr td:first-child{text-align:left}details.nutr th{font-weight:600;color:var(--mute)}.tag.vegan{color:#2e7d32;border-color:currentColor}
 @media(prefers-color-scheme:dark){.tag.vegan{color:#8fd694}}
 .sw{display:flex;gap:10px;align-items:center;min-height:44px;font-size:15px}.sw input{width:22px;height:22px;min-height:0;accent-color:var(--pri2)}
 .rtop{display:flex;gap:8px;align-items:center}.rtop span{flex:1}.rtop button{min-height:34px;background:#fff;color:var(--pri);font-size:14px;padding:0 10px}.rtop .rx{background:transparent;color:#fff;font-size:22px;padding:0 4px;font-weight:400}.reply ul{margin:4px 0 0;padding-left:18px;color:var(--soft)}
@@ -207,7 +209,7 @@ body.has-timer .toast{bottom:calc(var(--sb) + 122px)}
     <input id="recHint" placeholder="Wünsche: vegetarisch, schnell, Nudeln …">
     <button class="btnT" type="submit">Vorschlagen</button>
   </form>
-  <div class="chips" id="recChips"><button class="btn2" data-h="vegan">vegan</button><button class="btn2" data-h="vegetarisch">vegetarisch</button><button class="btn2" data-h="schnell">schnell</button><button class="btn2" data-h="Nudeln">Nudeln</button><button class="btn2" data-h="Reis">Reis</button><button class="btn2" data-h="Suppe">Suppe</button><button class="btn2" data-h="eiweißreich">eiweißreich</button><button class="btn2" data-h="Frühstück">Frühstück</button><button class="btn2" data-h="Vorkochen">Vorkochen</button><button class="btn2" data-h="Saison">Saison</button></div>
+  <div class="chips" id="recChips"><button class="btn2" data-h="vegan">vegan</button><button class="btn2" data-h="vegetarisch">vegetarisch</button><button class="btn2" data-h="schnell">schnell</button><button class="btn2" data-h="leicht">leicht</button><button class="btn2" data-h="Nudeln">Nudeln</button><button class="btn2" data-h="Reis">Reis</button><button class="btn2" data-h="Suppe">Suppe</button><button class="btn2" data-h="eiweißreich">eiweißreich</button><button class="btn2" data-h="Frühstück">Frühstück</button><button class="btn2" data-h="Vorkochen">Vorkochen</button><button class="btn2" data-h="Saison">Saison</button></div>
   <div class="row" style="margin-top:8px"><button class="btn2" id="aiRec" hidden>✨ Neue Ideen mit KI</button></div>
   <div class="status" id="recStatus"></div>
   <div id="recList"></div>
@@ -235,6 +237,8 @@ body.has-timer .toast{bottom:calc(var(--sb) + 122px)}
     <label class="meta" style="display:grid;gap:4px">Farben<select id="setPalette"><option value="blau">Blau &amp; Gelb</option><option value="gruen">Grün &amp; Tomate</option><option value="nacht">Nacht (dunkel)</option></select></label>
     <label class="meta" style="display:grid;gap:4px;margin-top:8px">Ernährung<select id="setDiet"><option value="vegan">Vegan</option><option value="vegetarisch">Vegetarisch</option><option value="alles">Alles</option></select></label>
     <p class="meta">Bestimmt, welche Rezepte zuerst kommen und wovor der Produkt-Check warnt.</p>
+    <label class="meta" style="display:grid;gap:4px;margin-top:8px">Portionen bei Rezepten<select id="setPortions"><option value="1">1 Portion</option><option value="2">2 Portionen</option><option value="3">3 Portionen</option><option value="4">4 Portionen</option><option value="5">5 Portionen</option><option value="6">6 Portionen</option><option value="7">7 Portionen</option><option value="8">8 Portionen</option></select></label>
+    <p class="meta">So viele Portionen stellen die Rezepte anfangs ein – die Mengen in der Zubereitung werden umgerechnet.</p>
   </div>
   <div class="box">
     <h3>Siri &amp; Kurzbefehle</h3>

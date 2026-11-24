@@ -76,7 +76,58 @@
     ['Pastinaken-Suppe', 30, 2, ['Pastinaken|Pastinake', 'Kartoffeln|Kartoffel', 'Zwiebel', 'Brühe|Gemüsebrühe', 'Hafersahne|Kokosmilch'], ['Gemüse schälen und würfeln, Zwiebel andünsten.', 'Mit 800 ml Brühe 20 Minuten köcheln.', 'Pflanzensahne dazu, fein pürieren, mit Muskat abschmecken.'], 'saison'],
     ['Rotkohl-Bowl mit Bratkartoffeln', 35, 2, ['Rotkohl', 'Kartoffeln|Kartoffel', 'Apfel|Äpfel', 'Walnüsse|Nüsse', 'Feldsalat|Salat'], ['Kartoffeln würfeln und knusprig braten.', 'Rotkohl fein hobeln, mit Apfel, Essig, Öl und Salz durchkneten.', 'Mit Feldsalat, Kartoffeln und Walnüssen anrichten.'], 'saison'],
   ];
-  const recipes = R.map(([title, time, veg, ing, steps, tags]) => ({ title, time, veg: veg >= 1, vegan: veg === 2, ing: ing.map(i => i.split('|')), steps, tags: tags || '' }));
+  // Portionen (für die Mengen in der Zubereitung) und Nährwerte pro Portion – grobe Schätzwerte:
+  // [Portionen, kcal, Eiweiß g, Kohlenhydrate g, Fett g]
+  const N = {
+    'Spaghetti Aglio e Olio': [2, 620, 18, 85, 22], 'Spaghetti Bolognese': [4, 650, 32, 78, 22], 'Pfannkuchen': [4, 400, 15, 55, 13],
+    'Rührei mit Brot': [2, 420, 22, 30, 23], 'Gemüse-Omelett': [2, 380, 25, 9, 27], 'Tomatensuppe': [2, 260, 5, 18, 18],
+    'Kartoffelsuppe': [4, 250, 6, 40, 7], 'Bratkartoffeln mit Spiegelei': [2, 520, 18, 50, 27], 'Gemüsepfanne mit Reis': [2, 480, 11, 85, 10],
+    'Hähnchen-Curry': [4, 620, 38, 60, 25], 'Chili con Carne': [4, 520, 35, 40, 22], 'Chili sin Carne': [4, 380, 17, 58, 8],
+    'Ofengemüse mit Feta': [2, 480, 17, 45, 26], 'Käsespätzle': [2, 780, 32, 75, 38], 'Gnocchi Tomate-Mozzarella': [2, 620, 22, 80, 22],
+    'Lachs mit Ofenkartoffeln': [2, 580, 35, 42, 28], 'Linsen-Dal': [3, 450, 20, 50, 18], 'Gebratener Reis': [2, 520, 17, 80, 14],
+    'Brokkoli-Nudelauflauf': [4, 650, 25, 70, 30], 'Shakshuka': [2, 320, 18, 18, 19], 'Hähnchen-Wraps': [2, 560, 40, 52, 19],
+    'Quesadillas': [2, 590, 25, 60, 27], 'Schnitzel mit Kartoffeln': [2, 720, 42, 60, 33], 'Kartoffelsalat': [4, 260, 5, 40, 9],
+    'Griechischer Salat': [2, 330, 11, 12, 27], 'Pilzrisotto': [3, 480, 15, 72, 14], 'Toast Hawaii': [2, 450, 25, 40, 20],
+    'Milchreis': [4, 400, 14, 70, 9], 'Porridge': [1, 350, 13, 55, 8], 'Bananen-Pancakes': [1, 380, 18, 45, 13],
+    'Würstchen mit Kartoffelpüree': [2, 650, 22, 50, 40], 'Tortellini in Sahnesoße': [2, 750, 28, 70, 40], 'Bruschetta': [2, 300, 8, 45, 10],
+    'Couscous-Salat': [2, 420, 12, 65, 13], 'Hähnchen mit Reis und Brokkoli': [2, 560, 42, 70, 10], 'Ofenkartoffel mit Kräuterquark': [2, 380, 22, 60, 4],
+    'Linsensuppe': [4, 340, 20, 52, 4], 'Thunfisch-Pasta': [2, 560, 33, 80, 10], 'Kichererbsen-Curry': [3, 580, 16, 70, 26],
+    'Tofu-Gemüse-Pfanne': [2, 520, 25, 70, 15], 'Linsen-Bolognese': [3, 520, 24, 92, 5], 'Erdnuss-Nudeln': [2, 620, 22, 80, 23],
+    'Rührtofu': [2, 380, 24, 30, 17], 'Hummus-Teller mit Gemüse': [2, 520, 18, 60, 22], 'Ofen-Süßkartoffel mit Kichererbsen': [2, 480, 15, 75, 13],
+    'Minestrone': [4, 300, 12, 50, 6], 'Pilz-Stroganoff vegan': [2, 520, 16, 75, 17], 'Overnight Oats vegan': [1, 380, 12, 55, 12],
+    'Bohnen-Tacos': [2, 540, 17, 65, 22], 'Ratatouille': [3, 200, 5, 20, 11], 'Kürbissuppe mit Kokos': [3, 300, 5, 22, 21],
+    'Asia-Nudelsuppe': [2, 380, 12, 70, 4], 'Gemüse-Paella': [3, 420, 11, 80, 6], 'Tofu-Reis-Bowl': [2, 560, 28, 70, 18],
+    'Pesto-Nudeln mit Gemüse': [2, 680, 19, 82, 30], 'Tempeh-Bowl mit Erdnusssoße': [2, 640, 35, 65, 26], 'Linsen-Salat mit Ofengemüse': [3, 420, 20, 50, 15],
+    'Kichererbsen-Salat to go': [2, 330, 13, 38, 13], 'Edamame-Nudeln mit Brokkoli': [2, 450, 40, 30, 17], 'Seitan-Geschnetzeltes': [2, 580, 40, 60, 17],
+    'Rote-Linsen-Gemüse-Curry zum Vorkochen': [4, 480, 20, 55, 19], 'Chia-Pudding': [1, 280, 9, 25, 15], 'Avocado-Toast mit Kichererbsen': [1, 420, 13, 40, 22],
+    'Smoothie-Bowl': [1, 350, 9, 60, 8], 'Vegane Pancakes': [2, 480, 13, 88, 8], 'Grünkohl-Pfanne mit Räuchertofu': [2, 480, 26, 45, 21],
+    'Rosenkohl-Pasta': [2, 620, 21, 82, 23], 'Rote-Bete-Risotto': [3, 420, 10, 70, 11], 'Pastinaken-Suppe': [3, 260, 5, 35, 11],
+    'Rotkohl-Bowl mit Bratkartoffeln': [2, 520, 11, 60, 26],
+  };
+  const recipes = R.map(([title, time, veg, ing, steps, tags]) => { const n = N[title] || [2];
+    return { title, time, veg: veg >= 1, vegan: veg === 2, ing: ing.map(i => i.split('|')), steps, tags: tags || '', serv: n[0], nutr: n[1] ? { kcal: n[1], protein: n[2], carbs: n[3], fat: n[4] } : null }; });
+
+  // Mengenangaben in einem Text auf eine andere Portionenzahl umrechnen („250 g Mehl“ → „375 g Mehl“).
+  // Temperaturen, Zeiten usw. bleiben unverändert – es werden nur Zahlen vor Mengeneinheiten skaliert.
+  const fmt = n => String(n).replace('.', ',');
+  function roundQty(v, unit) {
+    if (/^(g|ml)$/.test(unit)) return v >= 100 ? Math.round(v / 10) * 10 : v >= 20 ? Math.round(v / 5) * 5 : Math.max(1, Math.round(v));
+    if (/^(EL|TL)$/.test(unit)) return Math.max(0.5, Math.round(v * 2) / 2);
+    return Math.max(1, Math.round(v)); // Stückzahlen (Eier, Bananen …)
+  }
+  function scaleText(text, factor) {
+    if (!factor || Math.abs(factor - 1) < 1e-9) return text;
+    return String(text).replace(/(\d+(?:,\d+)?)\s(g|kg|ml|l|EL|TL|Eier|Ei|Eiern|Bananen?)(?=[\s,.;)]|$)/g, (m, num, unit) => {
+      let v = parseFloat(num.replace(',', '.')) * factor;
+      if (unit === 'kg' || unit === 'l') { v *= 1000; unit = unit === 'kg' ? 'g' : 'ml'; }
+      v = roundQty(v, unit);
+      if (unit === 'g' && v >= 1000) return fmt(Math.round(v / 100) / 10) + ' kg';
+      if (unit === 'ml' && v >= 1000) return fmt(Math.round(v / 100) / 10) + ' l';
+      if (/^Eie?r?n?$|^Ei$/.test(unit)) unit = v === 1 ? 'Ei' : unit === 'Eiern' ? 'Eiern' : 'Eier';
+      if (/^Banane/.test(unit)) unit = v === 1 ? 'Banane' : 'Bananen';
+      return fmt(v) + ' ' + unit;
+    });
+  }
   const norm = s => String(s || '').toLowerCase().normalize('NFC').replace(/[^a-zäöüß ]/g, ' ').replace(/\s+/g, ' ').trim();
   const stem = s => s.replace(/(en|n|e|s)$/, '');
 
@@ -98,8 +149,8 @@
     hint = norm(hint);
     const wantTag = /eiwei|protein/.test(hint) ? 'protein' : /vorkoch|meal/.test(hint) ? 'mealprep' : /frühstück|fruehstueck/.test(hint) ? 'fruehstueck' : '';
     const season = (prefs.season || []).map(norm), wantSeason = /saison/.test(hint);
-    const wantVegan = /vegan|pflanzlich/.test(hint), wantVeg = wantVegan || /vegetar|ohne fleisch/.test(hint), quick = /schnell|wenig zeit|zügig|fix/.test(hint);
-    const words = hint.split(' ').filter(w => w.length > 3 && !/vegetar|vegan|pflanzlich|schnell|ohne|fleisch|bitte|etwas|heute|eiwei|protein|vorkoch|meal|frühstück|saison|reich/.test(w));
+    const light = /leicht|kalorienarm|wenig kalorien/.test(hint), wantVegan = /vegan|pflanzlich/.test(hint), wantVeg = wantVegan || /vegetar|ohne fleisch/.test(hint), quick = /schnell|wenig zeit|zügig|fix/.test(hint);
+    const words = hint.split(' ').filter(w => w.length > 3 && !/vegetar|vegan|pflanzlich|schnell|ohne|fleisch|bitte|etwas|heute|eiwei|protein|vorkoch|meal|frühstück|saison|reich|leicht|kalorienarm|kalorien/.test(w));
     const out = [];
     for (const r of recipes) {
       if (wantTag && !r.tags.includes(wantTag)) continue;
@@ -109,13 +160,14 @@
       if (wantVeg && !r.veg) continue;
       const rs = (prefs.recipe || {})[r.title] || 0; if (rs <= -2) continue;
       if (quick && r.time > 25) continue;
+      if (light && r.nutr && r.nutr.kcal > 450) continue;
       const uses = [], missing = []; let soon = 0;
       r.ing.forEach(alts => { const hit = has(pn, alts); if (hit) { uses.push(hit.name); if (hit.soon) soon++; } else missing.push(alts[0]); });
       let score = uses.length / r.ing.length + soon * 0.25 + rs * 0.2 + (inSeason ? 0.15 : 0) + (wantTag || wantSeason ? 0.3 : 0);
       const tags = prefs.tags || {}; score += 0.05 * ((r.vegan ? tags.vegan || 0 : 0) + (r.veg ? tags.veg || 0 : tags.meat || 0) + (r.time <= 20 ? tags.quick || 0 : 0));
       if (words.length && words.some(w => norm(r.title).includes(stem(w)) || r.ing.some(a => a.some(x => norm(x).includes(stem(w)))))) score += 0.5;
-      if (!uses.length && !words.length && !wantVeg && !quick && !wantTag && !wantSeason) continue;
-      out.push({ title: r.title, time: r.time + ' Min.', veg: r.veg, vegan: r.vegan, liked: rs > 0, season: !!inSeason, tags: r.tags, ing: r.ing, uses: [...new Set(uses)], missing, steps: r.steps, score, soon });
+      if (!uses.length && !words.length && !wantVeg && !quick && !light && !wantTag && !wantSeason) continue;
+      out.push({ title: r.title, time: r.time + ' Min.', veg: r.veg, vegan: r.vegan, liked: rs > 0, season: !!inSeason, tags: r.tags, ing: r.ing, uses: [...new Set(uses)], missing, steps: r.steps, serv: r.serv, nutr: r.nutr, score, soon });
     }
     out.sort((a, b) => b.score - a.score || a.missing.length - b.missing.length);
     return out.slice(0, limit || 8);
@@ -136,5 +188,5 @@
     12: 'Grünkohl Rosenkohl Lauch Rotkohl Wirsing Rote_Bete Pastinaken Feldsalat Chicorée Karotten Kartoffeln Zwiebeln Äpfel'
   };
   const seasonFor = m => SEASON[m].split(' ').map(x => x.replace('_', ' '));
-  root.HRecipes = { suggest, recipes, seasonFor };
+  root.HRecipes = { suggest, recipes, seasonFor, scaleText };
 })(typeof window !== 'undefined' ? window : globalThis);

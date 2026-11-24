@@ -26,6 +26,13 @@ Es gibt eine Alternative ohne GitHub: Auf app.netlify.com/drop ziehst du den Ord
 4. Beim ersten Scannen fragt das iPhone, ob die App die Kamera benutzen darf. Tipp auf **Erlauben**. Beim ersten Mikrofon-Tippen fragt es nach dem Mikrofon.
 5. Unter **Mehr**, dann **Mitteilungen erlauben**, schaltest du Erinnerungen ein, die erscheinen, solange die App läuft.
 
+## Neu in Version 2.2
+
+- **Portionen:** Bei jedem Rezept mit − und + die Portionenzahl einstellen. Die Mengen in der Zubereitung (g, ml, l, EL, TL, Eier …) rechnet die App automatisch um. Wie viele Portionen anfangs eingestellt sind, legst du unter **Mehr** fest.
+- **Nährwerte:** Jedes Rezept zeigt ungefähre Kalorien und unter „Nährwerte (ca.)“ Eiweiß, Kohlenhydrate und Fett, pro Portion und insgesamt. Das sind grobe Schätzwerte. KI-Rezepte bringen eigene Schätzungen mit.
+- **Filter „leicht“:** zeigt Rezepte mit höchstens etwa 450 kcal pro Portion.
+- Im **Wochenplan** und auf **Heute** stehen Portionen und Kalorien beim geplanten Essen.
+
 ## Neu in Version 2
 
 - **Startseite „Heute“** mit deinen Aufgaben, dem Essen des Tages, bald Ablaufendem, Kaufvorschlägen, Reste-Bilanz und Saison-Gemüse.
