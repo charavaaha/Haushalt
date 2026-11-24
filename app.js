@@ -14,18 +14,27 @@ let AI = { key: '', model: 'claude-haiku-5-5' };
 try { Object.assign(AI, JSON.parse(localStorage.getItem(KKEY) || '{}')); } catch (e) {}
 const LDEF = () => ({ buys: {}, order: {}, aliases: {}, recipe: {}, tags: {}, dismissed: {}, trip: { at: 0, idx: 0 } });
 S.learn = Object.assign(LDEF(), S.learn || {});
-S.settings = Object.assign({ ask: true, speak: false, suggest: true, micMode: 'auto' }, S.settings || {});
+S.settings = Object.assign({ ask: true, speak: false, suggest: true, micMode: 'auto', palette: 'blau', diet: 'vegan' }, S.settings || {});
 delete S.settings.kbdDictation;
-const APP_VERSION = '1.4 (24.11.2026)';
+const APP_VERSION = '2.0 (24.11.2026)';
 let undoSnap = null;
 function snap() { undoSnap = JSON.stringify(S); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Speichern fehlgeschlagen – Speicher voll?'); } render(); }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
+/* ================= Aussehen ================= */
+const PAL = { blau: '#1e3a8a', gruen: '#1f4d3a', nacht: '#1a2f66' };
+function applyPalette() {
+  const p = S.settings.palette || 'blau', r = document.documentElement;
+  if (p === 'blau') delete r.dataset.palette; else r.dataset.palette = p;
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = PAL[p] || PAL.blau;
+}
+applyPalette();
+
 /* ================= Navigation ================= */
-const views = ['einkauf', 'vorrat', 'rezepte', 'todos', 'mehr'];
+const views = ['heute', 'einkauf', 'vorrat', 'rezepte', 'todos', 'mehr'];
 function route() {
-  const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'einkauf';
+  const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'heute';
   views.forEach(n => $('v-' + n).classList.toggle('on', n === v));
   document.querySelectorAll('nav.tabbar a').forEach(a => a.setAttribute('aria-current', a.dataset.v === v));
   if (v === 'rezepte' && !$('recList').innerHTML) localRecipes();
@@ -60,7 +69,7 @@ function addPantry(p) {
   S.pantry.push(Object.assign({ id: uid(), name: '', brand: '', qty: '', n: 1, cat: '', exp: '', code: '', loc: 'Vorratsschrank', info: '', added: new Date().toISOString().slice(0, 10) }, p, { n: +p.n || 1 }));
   return 'new';
 }
-function rememberProduct(p) { if (!p.code) return; S.catalog[p.code] = { name: p.name, brand: p.brand, qty: p.qty, cat: p.cat, loc: p.loc, info: p.info, img: p.img || (S.catalog[p.code] || {}).img || '' }; }
+function rememberProduct(p) { if (!p.code) return; S.catalog[p.code] = { check: p.check || null, name: p.name, brand: p.brand, qty: p.qty, cat: p.cat, loc: p.loc, info: p.info, img: p.img || (S.catalog[p.code] || {}).img || '' }; }
 function addTodo(t) { const o = { id: uid(), title: cap(t.title), due: t.due || '', remind: String(t.remind ?? 30), done: false, notified: false }; S.todos.push(o); return o; }
 
 /* ================= Lernen (läuft lokal bei jeder Nutzung) ================= */
@@ -134,14 +143,21 @@ let locFilter = 'Alle';
 function renderToday() {
   const h = new Date().getHours(), greet = h < 11 ? 'Guten Morgen' : h < 17 ? 'Hallo' : 'Guten Abend';
   const now = Date.now(), end = new Date(); end.setHours(23, 59, 59);
-  const tds = S.todos.filter(t => !t.done && t.due && new Date(t.due) <= end);
+  const tds = S.todos.filter(t => !t.done && t.due && new Date(t.due) <= end).sort((a, b) => a.due.localeCompare(b.due));
   const exp = S.pantry.filter(p => { const d = daysUntil(p.exp); return d !== null && d <= 2; });
-  const sug = buySuggestions(); const parts = [];
-  if (tds.length) parts.push(`<div class="tline"><a href="#todos">📝 ${tds.length === 1 ? '1 Aufgabe' : tds.length + ' Aufgaben'} heute${tds.some(t => new Date(t.due) < now) ? ' (überfällig dabei)' : ''}:</a> ${esc(tds.slice(0, 3).map(t => t.title).join(', '))}</div>`);
-  if (exp.length) parts.push(`<div class="tline">⏳ Bald ablaufend: ${esc(exp.slice(0, 4).map(p => p.name).join(', '))} <button class="mini" data-a="expRec">Rezept dazu</button></div>`);
-  if (sug.length) parts.push(`<div class="tline">🔁 Dein Rhythmus sagt, das brauchst du bald:</div><div class="opts">${sug.map(x => `<span class="sug"><button class="mini" data-a="sugAdd" data-k="${esc(x.k)}" title="kaufst du etwa alle ${x.avg} Tage">+ ${esc(x.name)}</button><button class="mini x2" data-a="sugNo" data-k="${esc(x.k)}" aria-label="Nicht jetzt">×</button></span>`).join('')}${sug.length > 1 ? '<button class="mini" data-a="sugAll">Alle hinzufügen</button>' : ''}</div>`);
-  $('today').innerHTML = parts.length ? `<div class="tg">${greet}!</div>` + parts.join('') : '';
-  $('today').hidden = !parts.length;
+  const sug = buySuggestions(), open = S.shopping.filter(i => !i.done).length;
+  $('greet').textContent = greet + '!';
+  const bits = [];
+  bits.push(tds.length ? (tds.length === 1 ? '1 Aufgabe' : tds.length + ' Aufgaben') + ' für heute' : 'Heute keine Termine');
+  if (open) bits.push(open + ' Sachen auf der Einkaufsliste');
+  $('heroSub').textContent = bits.join(' · ');
+  const cards = [];
+  if (tds.length) cards.push(`<div class="tcard"><h3>📝 Heute zu tun</h3><ul class="list">${tds.map(t => `<li data-id="${t.id}"><button class="chk" data-a="todoTog" aria-label="Erledigt"></button><div class="main"><div class="name">${esc(t.title)}</div><div class="meta">${new Date(t.due) < now ? '<span class="tag bad">überfällig</span>' : ''}${new Date(t.due).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</div></div></li>`).join('')}</ul></div>`);
+  if (exp.length) cards.push(`<div class="tcard"><h3>⏳ Bald ablaufend</h3><div>${esc(exp.slice(0, 6).map(p => { const d = daysUntil(p.exp); return p.name + (d < 0 ? ' (abgelaufen)' : d === 0 ? ' (heute)' : d === 1 ? ' (morgen)' : ''); }).join(', '))}</div><div class="opts"><button class="mini" data-a="expRec">Rezept dazu</button></div></div>`);
+  if (sug.length) cards.push(`<div class="tcard"><h3>🔁 Bald wieder kaufen?</h3><div class="opts">${sug.map(x => `<span class="sug"><button class="mini" data-a="sugAdd" data-k="${esc(x.k)}" title="kaufst du etwa alle ${x.avg} Tage">+ ${esc(x.name)}</button><button class="mini x2" data-a="sugNo" data-k="${esc(x.k)}" aria-label="Nicht jetzt">×</button></span>`).join('')}${sug.length > 1 ? '<button class="mini" data-a="sugAll">Alle hinzufügen</button>' : ''}</div></div>`);
+  if (!cards.length) cards.push(`<div class="tcard"><h3>✨ Alles im Griff</h3><div class="meta">Keine fälligen Aufgaben, nichts läuft ab. Sag oben einfach, was ansteht – z. B. „Morgen 18 Uhr Mama anrufen“.</div></div>`);
+  $('today').innerHTML = cards.join('');
+  const n = tds.length + exp.length; $('bToday').textContent = n || '';
 }
 function render() {
   const ord = k => { const o = L().order[norm(k)]; return o == null ? 999 : o; };
@@ -161,7 +177,7 @@ function render() {
   $('panList').innerHTML = pan.length ? pan.map(p => {
     const d = daysUntil(p.exp); let tag = '';
     if (d !== null) tag = d < 0 ? '<span class="tag bad">abgelaufen</span>' : d <= 3 ? `<span class="tag warn">${d === 0 ? 'heute' : 'noch ' + d + (d === 1 ? ' Tag' : ' Tage')}</span>` : `<span class="tag">bis ${new Date(p.exp + 'T00:00').toLocaleDateString('de-DE')}</span>`;
-    return `<li data-id="${p.id}"><div class="main" data-a="panEdit" style="cursor:pointer"><div class="name"><strong>${esc(p.name)}</strong>${p.brand ? ' <span class="meta">' + esc(p.brand) + '</span>' : ''}</div><div class="meta">${tag}<span class="tag">${esc(p.loc || 'Sonstiges')}</span>${p.qty ? esc(p.qty) : ''}</div></div>
+    return `<li data-id="${p.id}"><div class="main" data-a="panEdit" style="cursor:pointer"><div class="name"><strong>${esc(p.name)}</strong>${p.brand ? ' <span class="meta">' + esc(p.brand) + '</span>' : ''}</div><div class="meta">${tag}<span class="tag">${esc(p.loc || 'Sonstiges')}</span>${p.qty ? esc(p.qty) : ''}</div>${checkHTML(p.check, true)}</div>
       <div class="cnt"><button data-a="panMinus" aria-label="Eins weniger">−</button><span>${+p.n || 1}</span><button data-a="panPlus" aria-label="Eins mehr">+</button></div></li>`;
   }).join('') : `<li class="empty">${q || locFilter !== 'Alle' ? 'Nichts gefunden.' : 'Noch leer. Scanne ein Produkt oder sag „Reis und Nudeln sind im Vorrat“.'}</li>`;
 
@@ -183,7 +199,9 @@ function render() {
 const remTxt = r => +r >= 1440 ? (+r / 1440) + ' Tag vorher' : +r >= 60 ? (+r / 60) + ' Std. vorher' : r + ' Min. vorher';
 
 /* ================= Klicks ================= */
+let swipeBlock = 0;
 document.body.addEventListener('click', e => {
+  if (Date.now() - swipeBlock < 450 && e.isTrusted) { e.preventDefault(); return; }
   const c = e.target.closest('[data-loc]'); if (c) { locFilter = c.dataset.loc; render(); return; }
   const b = e.target.closest('[data-a]'); if (!b) return;
   const li = b.closest('[data-id]'), id = li && li.dataset.id, a = b.dataset.a;
@@ -205,6 +223,7 @@ document.body.addEventListener('click', e => {
   snap();
   if (a === 'shopTog') { const i = S.shopping.find(x => x.id === id); i.done = !i.done; if (i.done) learnBuy(i.name); }
   if (a === 'shopDel') S.shopping = S.shopping.filter(x => x.id !== id);
+  if (a === 'panDel') S.pantry = S.pantry.filter(x => x.id !== id);
   if (a === 'panPlus') { const p = S.pantry.find(x => x.id === id); p.n = (+p.n || 1) + 1; }
   if (a === 'panMinus') {
     const p = S.pantry.find(x => x.id === id); p.n = (+p.n || 1) - 1;
@@ -228,6 +247,35 @@ function editName(el, item) {
   const done = () => { const nv = cap(inp.value.trim()); if (nv && nv !== old) { snap(); item.name = nv; L().aliases[norm(old)] = nv; toast('Korrigiert – ab jetzt wird „' + old + '“ automatisch zu „' + nv + '“.', true); } save(); };
   inp.addEventListener('blur', done, { once: true }); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
 }
+
+/* ================= Wischen ================= */
+function fire(li, a) { const b = document.createElement('button'); b.dataset.a = a; b.hidden = true; li.appendChild(b); b.click(); b.remove(); }
+function swipeAction(li, dir) {
+  const ul = li.closest('ul'), id = ul && ul.id;
+  if (id === 'shopList') { if (dir === 'r') fire(li, 'shopTog'); else { fire(li, 'shopDel'); toast('Gelöscht.', true); } }
+  else if (id === 'panList') { if (dir === 'r') fire(li, 'panMinus'); else { fire(li, 'panDel'); toast('Aus dem Vorrat gelöscht.', true); } }
+  else if (id === 'todoList' || li.closest('#today')) { fire(li, dir === 'r' ? 'todoTog' : 'todoDel'); }
+}
+(() => {
+  let li = null, x0 = 0, y0 = 0, dx = 0, mode = null;
+  document.addEventListener('touchstart', e => {
+    const t = e.target.closest('.list li[data-id]'); if (!t || e.target.closest('input,textarea,select')) { li = null; return; }
+    li = t; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; mode = null;
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!li) return; const x = e.touches[0].clientX - x0, y = e.touches[0].clientY - y0;
+    if (!mode) { if (Math.abs(x) > 10 && Math.abs(x) > Math.abs(y) * 1.3) mode = 'h'; else if (Math.abs(y) > 10) mode = 'v'; }
+    if (mode !== 'h') return;
+    dx = x; li.classList.add('swiping'); li.style.transform = `translateX(${dx}px)`;
+    li.classList.toggle('sw-r', dx > 70); li.classList.toggle('sw-l', dx < -70);
+  }, { passive: true });
+  const endSwipe = () => {
+    if (!li) return; const el = li; li = null;
+    el.classList.remove('swiping', 'sw-r', 'sw-l'); el.style.transform = '';
+    if (mode === 'h' && Math.abs(dx) >= 80) { swipeAction(el, dx > 0 ? 'r' : 'l'); swipeBlock = Date.now(); }
+  };
+  document.addEventListener('touchend', endSwipe); document.addEventListener('touchcancel', endSwipe);
+})();
 
 /* ================= Kalender (.ics) ================= */
 function icsDate(s, addMin) { const d = new Date(new Date(s).getTime() + (addMin || 0) * 6e4); const p = n => String(n).padStart(2, '0'); return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + 'T' + p(d.getHours()) + p(d.getMinutes()) + '00'; }
@@ -439,8 +487,44 @@ $('scanFile').addEventListener('change', async e => {
 
 /* Produktdaten */
 const ALG = { milk: 'Milch', gluten: 'Gluten', eggs: 'Ei', nuts: 'Schalenfrüchte', peanuts: 'Erdnüsse', soybeans: 'Soja', celery: 'Sellerie', mustard: 'Senf', 'sesame-seeds': 'Sesam', fish: 'Fisch', crustaceans: 'Krebstiere', molluscs: 'Weichtiere', lupin: 'Lupinen', 'sulphur-dioxide-and-sulphites': 'Sulfite' };
+/* Produkt-Check: vegan, Palmöl, Umwelt, Verpackung, Herkunft – aus den Open-Food-Facts-Daten */
+function buildCheck(p, host) {
+  const ia = (p.ingredients_analysis_tags || []).join(' '), lb = (p.labels_tags || []).join(' ');
+  const c = {};
+  if (/en:vegan\b/.test(lb) || /en:vegan\b/.test(ia)) c.vegan = 'yes';
+  else if (/en:non-vegan/.test(ia)) c.vegan = 'no';
+  else if (/en:maybe-vegan/.test(ia)) c.vegan = 'maybe';
+  if (c.vegan !== 'yes') { if (/en:vegetarian\b/.test(lb + ' ' + ia)) c.veg = 'yes'; else if (/en:non-vegetarian/.test(ia)) c.veg = 'no'; }
+  if (/en:palm-oil-free|en:no-palm-oil/.test(lb + ' ' + ia)) c.palm = 'no'; else if (/en:palm-oil\b/.test(ia)) c.palm = 'yes'; else if (/en:may-contain-palm-oil/.test(ia)) c.palm = 'maybe';
+  if (/^[a-e]$/.test(p.ecoscore_grade || '')) c.eco = p.ecoscore_grade;
+  const pk = [...(p.packaging_materials_tags || []), ...(p.packaging_tags || [])].join(' ');
+  if (pk) { const mats = []; if (/plastic|pet\b|en:pp\b|en:pe\b|hdpe|ldpe|polyst|kunststoff/.test(pk)) mats.push('Plastik'); if (/glass|glas/.test(pk)) mats.push('Glas'); if (/paper|cardboard|carton|papier|pappe/.test(pk)) mats.push('Papier/Pappe'); if (/metal|steel|alumin|tin|can\b/.test(pk)) mats.push('Metall'); if (mats.length) c.pack = mats; }
+  const made = (p.manufacturing_places || p.origins || '').split(',')[0].trim(); if (made) c.made = made;
+  const L = []; if (/organic|bio/.test(lb)) L.push('Bio'); if (/fair-trade|fairtrade/.test(lb)) L.push('Fairtrade'); if (/rainforest/.test(lb)) L.push('Rainforest'); if (L.length) c.labels = L;
+  return Object.keys(c).length ? c : null;
+}
+function checkHTML(c, compact) {
+  if (!c) return '';
+  const diet = S.settings.diet, o = [];
+  if (c.vegan === 'yes') o.push('<span class="pc ok">🌱 vegan</span>');
+  else if (c.vegan === 'no') o.push(`<span class="pc ${diet === 'vegan' ? 'no' : 'info'}">✗ nicht vegan</span>`);
+  else if (c.vegan === 'maybe') o.push('<span class="pc mid">? vegan unklar</span>');
+  if (c.veg === 'no' && diet !== 'alles') o.push('<span class="pc no">✗ nicht vegetarisch</span>');
+  if (c.palm === 'yes') o.push('<span class="pc no">Palmöl</span>'); else if (c.palm === 'maybe') o.push('<span class="pc mid">evtl. Palmöl</span>'); else if (c.palm === 'no' && !compact) o.push('<span class="pc ok">ohne Palmöl</span>');
+  if (c.eco) o.push(`<span class="pc eco eco-${c.eco}" title="Umweltbewertung">Eco ${c.eco.toUpperCase()}</span>`);
+  if (c.pack && !compact) o.push(`<span class="pc ${c.pack.includes('Plastik') ? 'mid' : 'ok'}">📦 ${esc(c.pack.join(', '))}</span>`);
+  else if (c.pack && c.pack.includes('Plastik')) o.push('<span class="pc mid">Plastik</span>');
+  if (c.labels) o.push(...c.labels.map(l => `<span class="pc ok">${esc(l)}</span>`));
+  if (c.made && !compact) o.push(`<span class="pc info">🏭 ${esc(c.made)}</span>`);
+  return o.length ? `<div class="pcheck">${o.join('')}</div>` : '';
+}
+function checkWarn(c, name) {
+  if (!c) return; const d = S.settings.diet;
+  if (d === 'vegan' && c.vegan === 'no') toast('⚠️ ' + name + ' ist laut Datenbank nicht vegan.');
+  else if (d === 'vegetarisch' && c.veg === 'no') toast('⚠️ ' + name + ' ist laut Datenbank nicht vegetarisch.');
+}
 async function offLookup(code) {
-  const fields = 'product_name,product_name_de,generic_name_de,brands,quantity,categories,categories_tags,nutriments,allergens_tags,ingredients_text_de,ingredients_text,nutriscore_grade,image_front_small_url';
+  const fields = 'product_name,product_name_de,generic_name_de,brands,quantity,categories,categories_tags,nutriments,allergens_tags,ingredients_text_de,ingredients_text,nutriscore_grade,image_front_small_url,ingredients_analysis_tags,labels_tags,ecoscore_grade,packaging_materials_tags,packaging_tags,manufacturing_places,origins,countries_tags';
   for (const host of ['world.openfoodfacts.org', 'world.openproductsfacts.org', 'world.openbeautyfacts.org']) {
     try {
       const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
@@ -457,7 +541,7 @@ async function offLookup(code) {
       const tags = (p.categories_tags || []).join(' ');
       const loc = /frozen|tiefk/.test(tags) ? 'Tiefkühler' : /dair|milk|yogh|yogurt|chees|meat|fresh|sausag|fish|cream|butter|joghurt|käse|milch|fleisch|wurst/.test(tags) ? 'Kühlschrank' : host.includes('beauty') || host.includes('products') ? 'Sonstiges' : 'Vorratsschrank';
       const cat = (p.categories || '').split(',').map(s => s.trim()).filter(s => s && !/:/.test(s)).slice(-1)[0] || '';
-      return { name: cap(name), brand: (p.brands || '').split(',')[0].trim(), qty: p.quantity || '', cat, loc, info: parts.join('\n'), img: p.image_front_small_url || '', src: host.split('.')[1] };
+      return { name: cap(name), brand: (p.brands || '').split(',')[0].trim(), qty: p.quantity || '', cat, loc, info: parts.join('\n'), img: p.image_front_small_url || '', src: host.split('.')[1], check: buildCheck(p, host) };
     } catch (e) {}
   }
   return null;
@@ -466,7 +550,7 @@ async function handleCode(code) {
   const inPan = S.pantry.find(p => p.code === code);
   if (inPan) { snap(); inPan.n = (+inPan.n || 1) + 1; save(); $('scanStatus').textContent = inPan.name + ' war schon im Vorrat – jetzt ' + inPan.n + ' Stück.'; toast(inPan.name + ': Anzahl +1', true); openPan(inPan, 'Bekanntes Produkt – Anzahl erhöht. Haltbarkeit anpassen?'); return; }
   const known = S.catalog[code];
-  if (known) { openPan(Object.assign({}, known, { code, n: 1, exp: '' }), 'Bekanntes Produkt (offline erkannt)'); $('scanStatus').textContent = 'Barcode ' + code + ' erkannt.'; return; }
+  if (known) { checkWarn(known.check, known.name); openPan(Object.assign({}, known, { code, n: 1, exp: '' }), 'Bekanntes Produkt (offline erkannt)'); $('scanStatus').textContent = 'Barcode ' + code + ' erkannt.'; return; }
   openPan({ code, n: 1 }, navigator.onLine ? 'Suche Produktinfos …' : 'Offline – Produktdaten bitte eintragen, Infos später nachladen.');
   $('scanStatus').textContent = 'Barcode ' + code + ' erkannt.';
   if (navigator.onLine) await fillFromOFF(code);
@@ -475,16 +559,17 @@ async function fillFromOFF(code) {
   $('pSrc').textContent = 'Suche Produktinfos …'; $('pImgRow').hidden = false; $('pImg').hidden = true;
   const info = await offLookup(code);
   if ($('pCode').value !== code) return;
-  if (info) { fillForm(info, true); $('pSrc').textContent = 'Daten von Open ' + ({ openfoodfacts: 'Food', openproductsfacts: 'Products', openbeautyfacts: 'Beauty' }[info.src] || 'Food') + ' Facts – bitte Haltbarkeit ergänzen.'; if (info.img) { $('pImg').src = info.img; $('pImg').hidden = false; } }
+  if (info) { fillForm(info, true); checkWarn(info.check, info.name); $('pSrc').textContent = 'Daten von Open ' + ({ openfoodfacts: 'Food', openproductsfacts: 'Products', openbeautyfacts: 'Beauty' }[info.src] || 'Food') + ' Facts – bitte Haltbarkeit ergänzen.'; if (info.img) { $('pImg').src = info.img; $('pImg').hidden = false; } }
   else { $('pSrc').textContent = 'Produkt nicht in der Datenbank. ' + (AI.key ? 'Tipp: „Verpackung per KI lesen“.' : 'Bitte Name eintragen – beim nächsten Scan wird es wiedererkannt.'); }
 }
 
 /* Vorrats-Formular */
 const F = { name: 'pName', brand: 'pBrand', qty: 'pQty', n: 'pN', exp: 'pExp', loc: 'pLoc', cat: 'pCat', code: 'pCode', info: 'pInfo' };
-let editId = null, curImg = '', photoBlob = null;
-function fillForm(p, onlyEmpty) { Object.entries(F).forEach(([k, id]) => { if (p[k] == null || p[k] === '') return; if (onlyEmpty && $(id).value && k !== 'loc' && k !== 'info') return; $(id).value = p[k]; }); if (p.img) curImg = p.img; }
+let editId = null, curImg = '', photoBlob = null, curCheck = null;
+function showCheck() { $('pCheck').innerHTML = checkHTML(curCheck) || ''; $('pCheck').hidden = !curCheck; }
+function fillForm(p, onlyEmpty) { Object.entries(F).forEach(([k, id]) => { if (p[k] == null || p[k] === '') return; if (onlyEmpty && $(id).value && k !== 'loc' && k !== 'info') return; $(id).value = p[k]; }); if (p.img) curImg = p.img; if (p.check) { curCheck = p.check; showCheck(); } }
 function openPan(p, msg) {
-  p = p || {}; editId = p.id || null; curImg = p.img || '';
+  p = p || {}; editId = p.id || null; curImg = p.img || ''; curCheck = p.check || null; showCheck();
   Object.entries(F).forEach(([k, id]) => { $(id).value = p[k] != null ? p[k] : (k === 'loc' ? 'Vorratsschrank' : k === 'n' ? 1 : ''); });
   $('panTitle').textContent = editId ? 'Produkt bearbeiten' : 'Neues Produkt';
   $('pSrc').textContent = msg || ''; $('pImgRow').hidden = !msg && !curImg; $('pImg').hidden = !curImg; if (curImg) $('pImg').src = curImg;
@@ -499,7 +584,7 @@ $('pLookup').onclick = () => { const c = $('pCode').value.trim(); if (c) fillFro
 $('pCode').addEventListener('change', () => { $('pLookup').hidden = !($('pCode').value.trim() && navigator.onLine); });
 $('panForm').addEventListener('submit', e => {
   e.preventDefault(); snap();
-  const p = {}; Object.entries(F).forEach(([k, id]) => p[k] = String($(id).value).trim()); p.n = Math.max(1, parseInt(p.n) || 1); p.name = cap(p.name); p.img = curImg;
+  const p = {}; Object.entries(F).forEach(([k, id]) => p[k] = String($(id).value).trim()); p.n = Math.max(1, parseInt(p.n) || 1); p.name = cap(p.name); p.img = curImg; if (curCheck) p.check = curCheck;
   rememberProduct(p);
   if (editId) { const x = S.pantry.find(q => q.id === editId); if (x) Object.assign(x, p); toast(p.name + ' gespeichert.'); }
   else { const r = addPantry(p); toast(r === 'more' ? p.name + ' war schon da – Anzahl erhöht.' : p.name + ' ist jetzt im Vorrat.', true); }
@@ -513,7 +598,8 @@ async function readLabel(file) {
   try {
     const c = toCanvas(await loadImg(file), 1280), b64 = c.toDataURL('image/jpeg', 0.82).split(',')[1];
     const code = $('pCode').value.trim();
-    const r = await aiJSON([{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }, { type: 'text', text: `Lies von diesem Produktfoto ab, was sichtbar ist.${code ? ' Barcode: ' + code + '.' : ''} Antworte NUR mit JSON: {"name":"kurzer deutscher Produktname","brand":"","qty":"Packungsgröße","cat":"Kategorie","exp":"MHD als YYYY-MM-DD oder leer","code":"EAN-Ziffern falls lesbar","loc":"Kühlschrank|Vorratsschrank|Tiefkühler|Sonstiges","info":"Nährwerte pro 100 g, Allergene, Zutaten kompakt – nur Sichtbares"}. Nichts erfinden, Unbekanntes leer lassen.` }], 900);
+    const r = await aiJSON([{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }, { type: 'text', text: `Lies von diesem Produktfoto ab, was sichtbar ist.${code ? ' Barcode: ' + code + '.' : ''} Antworte NUR mit JSON: {"name":"kurzer deutscher Produktname","brand":"","qty":"Packungsgröße","cat":"Kategorie","exp":"MHD als YYYY-MM-DD oder leer","code":"EAN-Ziffern falls lesbar","loc":"Kühlschrank|Vorratsschrank|Tiefkühler|Sonstiges","info":"Nährwerte pro 100 g, Allergene, Zutaten kompakt – nur Sichtbares","vegan":"yes|no|maybe – nach Zutaten und Siegeln","palm":"yes|no|maybe"}. Nichts erfinden, Unbekanntes leer lassen.` }], 900);
+    const ck = {}; if (/^(yes|no|maybe)$/.test(r.vegan || '')) ck.vegan = r.vegan; if (/^(yes|no|maybe)$/.test(r.palm || '')) ck.palm = r.palm; if (Object.keys(ck).length) { r.check = Object.assign({}, curCheck || {}, ck); checkWarn(r.check, r.name || 'Das Produkt'); }
     fillForm(r, false); $('pSrc').textContent = 'Von der KI gelesen – bitte prüfen.';
   } catch (e) { $('pSrc').textContent = 'KI-Auslesen fehlgeschlagen: ' + e.message; }
 }
@@ -532,7 +618,9 @@ function renderRecipes(list, note) {
 }
 function localRecipes() {
   try { syncChips(); } catch (e) {}
-  const list = window.HRecipes.suggest(pantryForRecipes(), $('recHint').value, 8, { recipe: L().recipe, tags: L().tags });
+  let hint = $('recHint').value; const diet = S.settings.diet;
+  if (!/vegan|vegetar|fleisch|alles/i.test(hint) && diet !== 'alles') hint += ' ' + diet;
+  const list = window.HRecipes.suggest(pantryForRecipes(), hint, 8, { recipe: L().recipe, tags: L().tags });
   renderRecipes(list, !S.pantry.length ? 'Dein Vorrat ist noch leer – hier ein paar Ideen. Trage Vorräte ein für passende Vorschläge.' : list.length ? '' : 'Keine passenden Rezepte gefunden – probiere andere Wünsche.');
   if (!S.pantry.length && !list.length) renderRecipes(window.HRecipes.recipes.slice(0, 6).map(r => ({ title: r.title, time: r.time + ' Min.', veg: r.veg, uses: [], missing: r.ing.map(a => a[0]), steps: r.steps })), 'Dein Vorrat ist noch leer – hier ein paar Ideen.');
 }
@@ -554,6 +642,8 @@ $('aiRec').onclick = async () => {
 
 /* ================= Einstellungen ================= */
 function renderSettings() {
+  $('setPalette').value = S.settings.palette || 'blau'; $('setDiet').value = S.settings.diet || 'vegan';
+  $('cmdLink').textContent = location.origin + location.pathname + '?cmd=Milch%20kaufen';
   $('setMic').value = S.settings.micMode || 'auto'; $('setAsk').checked = S.settings.ask; $('setSpeak').checked = S.settings.speak; $('setSuggest').checked = S.settings.suggest;
   const rh = Object.values(L().buys).filter(b => rhythm(b)).length, liked = Object.values(L().recipe).filter(v => v > 0).length, disl = Object.values(L().recipe).filter(v => v < 0).length;
   const tg = L().tags, pref = (tg.vegan || 0) > 1 ? 'vegan' : (tg.veg || 0) > (tg.meat || 0) + 1 ? 'vegetarisch' : (tg.meat || 0) > (tg.veg || 0) + 1 ? 'mit Fleisch' : 'noch offen';
@@ -586,6 +676,18 @@ $('wipe').onclick = () => { if ($('wipe').dataset.sure) { snap(); S = { shopping
 $('setMic').addEventListener('change', () => { S.settings.micMode = $('setMic').value; srFails = 0; save(); });
 ['setAsk', 'setSpeak', 'setSuggest'].forEach(id => $(id).addEventListener('change', () => { S.settings.ask = $('setAsk').checked; S.settings.speak = $('setSpeak').checked; S.settings.suggest = $('setSuggest').checked; save(); if (id === 'setSpeak' && S.settings.speak) speak('Okay, ich lese meine Antworten ab jetzt vor.'); }));
 $('learnReset').onclick = () => { snap(); S.learn = LDEF(); save(); renderSettings(); toast('Gelerntes zurückgesetzt.', true); };
+
+/* ================= Siri / Kurzbefehle / Links ================= */
+if (!navigator.clipboard || !navigator.clipboard.readText) $('pasteBtn').hidden = true;
+$('pasteBtn').onclick = async () => {
+  try { const t = ((await navigator.clipboard.readText()) || '').trim();
+    if (!t) { toast('Die Zwischenablage ist leer.'); return; } $('cmd').value = t; runCommand(t); }
+  catch (e) { $('cmd').focus(); toast('Einfügen nicht erlaubt – halte im Textfeld gedrückt und wähle „Einsetzen“.'); }
+};
+(() => { const qp = new URLSearchParams(location.search), qc = qp.get('cmd') || qp.get('text');
+  if (qc) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {} setTimeout(() => runCommand(qc), 400); } })();
+$('setPalette').addEventListener('change', () => { S.settings.palette = $('setPalette').value; applyPalette(); save(); });
+$('setDiet').addEventListener('change', () => { S.settings.diet = $('setDiet').value; save(); $('recList').innerHTML = ''; });
 
 /* ================= Start ================= */
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
