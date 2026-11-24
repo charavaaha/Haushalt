@@ -1,5 +1,5 @@
 /* Offline-Cache: Die App läuft nach dem ersten Öffnen komplett ohne Internet. */
-const CACHE = 'alltagsheld-v6';
+const CACHE = 'alltagsheld-v7';
 const FILES = ['./', './index.html', './app.js', './parser.js', './recipes.js', './zxing.min.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))).then(() => self.clients.claim())); });

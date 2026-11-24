@@ -186,7 +186,7 @@ details ol{padding-left:20px;margin:6px 0}
     <label class="sw"><input type="checkbox" id="setSuggest"> Einkaufsvorschläge nach Kaufrhythmus</label>
     <label class="sw"><input type="checkbox" id="setAsk"> Rückfragen stellen (Termin, Haltbarkeit, Kalender)</label>
     <label class="sw"><input type="checkbox" id="setSpeak"> Antworten vorlesen</label>
-    <label class="sw"><input type="checkbox" id="setKbd"> Spracheingabe über das Diktieren der Tastatur (zuverlässiger auf dem iPhone)</label>
+    <label class="meta" style="display:grid;gap:4px;margin-top:6px">Spracheingabe<select id="setMic"><option value="auto">Automatisch (iPhone: Tastatur-Diktat)</option><option value="keyboard">Immer Tastatur-Diktat</option><option value="app">Immer App-Mikrofon</option></select></label>
     <p class="meta" id="learnInfo"></p>
     <button class="btn2" id="learnReset">Gelerntes zurücksetzen</button>
   </div>
@@ -210,6 +210,7 @@ details ol{padding-left:20px;margin:6px 0}
   </div>
   <div class="box">
     <h3>Speicher</h3>
+    <p class="meta" id="appVersion"></p>
     <p class="meta" id="storeInfo"></p>
     <button class="btn2" id="wipe" style="color:var(--tomatoInk)">Alle Daten löschen</button>
   </div>

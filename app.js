@@ -14,7 +14,9 @@ let AI = { key: '', model: 'claude-haiku-5-5' };
 try { Object.assign(AI, JSON.parse(localStorage.getItem(KKEY) || '{}')); } catch (e) {}
 const LDEF = () => ({ buys: {}, order: {}, aliases: {}, recipe: {}, tags: {}, dismissed: {}, trip: { at: 0, idx: 0 } });
 S.learn = Object.assign(LDEF(), S.learn || {});
-S.settings = Object.assign({ ask: true, speak: false, suggest: true, kbdDictation: false }, S.settings || {});
+S.settings = Object.assign({ ask: true, speak: false, suggest: true, micMode: 'auto' }, S.settings || {});
+delete S.settings.kbdDictation;
+const APP_VERSION = '1.4 (24.11.2026)';
 let undoSnap = null;
 function snap() { undoSnap = JSON.stringify(S); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Speichern fehlgeschlagen – Speicher voll?'); } render(); }
@@ -328,24 +330,27 @@ $('cmd').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, listening = false, starting = false, base = '', finalTxt = '', hadError = false, srFails = 0, startTimer = null;
 const IDLE_HINT = 'Mikro antippen und sprechen – oder tippen und OK drücken.';
-function kbdMode() { return !SR || !!S.settings.kbdDictation; }
+// iPhone/iPad: Die Spracherkennung von Web-Apps klappt dort oft nur einmal pro Start. Darum nutzt „Automatisch“ dort das Diktieren der Tastatur.
+const IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function kbdMode() { if (!SR) return true; const m = S.settings.micMode; return m === 'keyboard' || (m === 'auto' && IS_IOS); }
+let gotResult = false;
 function keyboardDictation(msg) {
   $('micHint').hidden = false;
-  $('micHint').textContent = msg || 'Tipp jetzt unten auf der Tastatur auf das Mikrofon 🎤 und sprich. Danach auf OK.';
+  $('micHint').textContent = msg || 'Tipp jetzt auf der Tastatur auf 🎤 (neben der Leertaste) und sprich. Danach auf OK.';
   $('cmd').focus();
 }
 function srFail(reason) {
   srFails++; listening = starting = false; $('mic').classList.remove('on');
   try { rec && rec.abort(); } catch (e) {}
   rec = null;
-  if (srFails >= 2 && SR) { S.settings.kbdDictation = true; save(); keyboardDictation('Die Spracherkennung macht hier Probleme – ich nutze ab jetzt das Diktieren der Tastatur. Tipp unten auf der Tastatur auf 🎤. (Umstellbar unter „Mehr“.)'); return; }
+  if (srFails >= 2 && SR) { S.settings.micMode = 'keyboard'; save(); keyboardDictation('Die Spracherkennung macht hier Probleme – ich nutze ab jetzt das Diktieren der Tastatur. Tipp unten auf der Tastatur auf 🎤. (Umstellbar unter „Mehr“.)'); return; }
   keyboardDictation(reason || 'Das Mikrofon hat nicht reagiert. Tipp unten auf der Tastatur auf 🎤 oder versuch es gleich noch mal.');
 }
 function getRec() {
   if (rec) return rec;
   rec = new SR(); rec.lang = 'de-DE'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
   rec.onstart = () => { clearTimeout(startTimer); starting = false; listening = true; srFails = 0; $('micHint').hidden = false; $('mic').classList.add('on'); $('micHint').textContent = 'Ich höre zu … (zum Beenden nochmal tippen)'; };
-  rec.onresult = ev => { let interim = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) { const r = ev.results[i]; if (r.isFinal) finalTxt += r[0].transcript + ' '; else interim += r[0].transcript; } $('cmd').value = (base ? base + ' ' : '') + finalTxt + interim; };
+  rec.onresult = ev => { gotResult = true; let interim = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) { const r = ev.results[i]; if (r.isFinal) finalTxt += r[0].transcript + ' '; else interim += r[0].transcript; } $('cmd').value = (base ? base + ' ' : '') + finalTxt + interim; };
   rec.onerror = ev => {
     hadError = true;
     if (ev.error === 'no-speech') { $('micHint').textContent = 'Nichts gehört – tipp nochmal aufs Mikro.'; return; }
@@ -356,6 +361,7 @@ function getRec() {
     clearTimeout(startTimer); const was = listening; listening = starting = false; $('mic').classList.remove('on');
     if ($('micHint').textContent.startsWith('Ich höre')) $('micHint').textContent = IDLE_HINT;
     if (was && (finalTxt.trim() || $('cmd').value.trim() !== base)) runCommand($('cmd').value);
+    else if (was && !gotResult && !hadError) { srFail('Ich habe nichts empfangen. Tipp unten auf der Tastatur auf 🎤 – das klappt immer.'); return; }
     if (hadError) { rec = null; hadError = false; }   // nach einem Fehler beim nächsten Mal frisch beginnen
   };
   return rec;
@@ -363,7 +369,7 @@ function getRec() {
 $('mic').addEventListener('click', () => {
   if (kbdMode()) { keyboardDictation(); return; }
   if (listening || starting) { try { rec.stop(); } catch (e) {} return; }
-  base = $('cmd').value.trim(); finalTxt = ''; hadError = false; starting = true;
+  base = $('cmd').value.trim(); finalTxt = ''; hadError = false; gotResult = false; starting = true;
   try { getRec().start(); }
   catch (e) { // "already started" o. ä.: einmal frisch versuchen
     try { rec && rec.abort(); } catch (x) {} rec = null;
@@ -548,7 +554,7 @@ $('aiRec').onclick = async () => {
 
 /* ================= Einstellungen ================= */
 function renderSettings() {
-  $('setKbd').checked = !!S.settings.kbdDictation; $('setAsk').checked = S.settings.ask; $('setSpeak').checked = S.settings.speak; $('setSuggest').checked = S.settings.suggest;
+  $('setMic').value = S.settings.micMode || 'auto'; $('setAsk').checked = S.settings.ask; $('setSpeak').checked = S.settings.speak; $('setSuggest').checked = S.settings.suggest;
   const rh = Object.values(L().buys).filter(b => rhythm(b)).length, liked = Object.values(L().recipe).filter(v => v > 0).length, disl = Object.values(L().recipe).filter(v => v < 0).length;
   const tg = L().tags, pref = (tg.vegan || 0) > 1 ? 'vegan' : (tg.veg || 0) > (tg.meat || 0) + 1 ? 'vegetarisch' : (tg.meat || 0) > (tg.veg || 0) + 1 ? 'mit Fleisch' : 'noch offen';
   $('learnInfo').innerHTML = `Gelernt bisher: <b>${rh}</b> Kaufrhythmen · <b>${Object.keys(L().order).length}</b> Artikel in Laden-Reihenfolge · <b>${Object.keys(L().aliases).length}</b> Korrekturen · <b>${liked}</b> Lieblingsrezepte, <b>${disl}</b> abgelehnt · Essensvorliebe: ${pref}`;
@@ -557,6 +563,7 @@ function renderSettings() {
   const perm = 'Notification' in window ? Notification.permission : 'nicht verfügbar';
   $('notifState').textContent = { granted: 'erlaubt', denied: 'abgelehnt (in iPhone-Einstellungen ändern)', default: '', 'nicht verfügbar': 'erst nach „Zum Home-Bildschirm“ verfügbar' }[perm] ?? perm;
   let bytes = 0; try { bytes = (localStorage.getItem(KEY) || '').length; } catch (e) {}
+  $('appVersion').textContent = 'Alltagsheld ' + APP_VERSION;
   $('storeInfo').textContent = `${S.shopping.length} Einkaufsartikel · ${S.pantry.length} Vorratsprodukte · ${S.todos.length} To-dos · ${Object.keys(S.catalog).length} bekannte Barcodes · ${(bytes / 1024).toFixed(1)} KB`;
 }
 $('notifBtn').onclick = async () => { if (!('Notification' in window)) { toast('Mitteilungen gehen erst, wenn die App auf dem Home-Bildschirm liegt.'); return; } try { await Notification.requestPermission(); } catch (e) {} renderSettings(); if (Notification.permission === 'granted') notify('Mitteilungen aktiv', 'So sehen Erinnerungen aus.'); };
@@ -576,7 +583,7 @@ $('importFile').addEventListener('change', async e => {
 });
 $('wipe').onclick = () => { if ($('wipe').dataset.sure) { snap(); S = { shopping: [], pantry: [], todos: [], catalog: {}, recipes: [], learn: LDEF(), settings: S.settings }; save(); renderSettings(); toast('Alle Daten gelöscht.', true); delete $('wipe').dataset.sure; $('wipe').textContent = 'Alle Daten löschen'; } else { $('wipe').dataset.sure = 1; $('wipe').textContent = 'Wirklich alles löschen? Nochmal tippen'; setTimeout(() => { delete $('wipe').dataset.sure; $('wipe').textContent = 'Alle Daten löschen'; }, 4000); } };
 
-$('setKbd').addEventListener('change', () => { S.settings.kbdDictation = $('setKbd').checked; srFails = 0; save(); });
+$('setMic').addEventListener('change', () => { S.settings.micMode = $('setMic').value; srFails = 0; save(); });
 ['setAsk', 'setSpeak', 'setSuggest'].forEach(id => $(id).addEventListener('change', () => { S.settings.ask = $('setAsk').checked; S.settings.speak = $('setSpeak').checked; S.settings.suggest = $('setSuggest').checked; save(); if (id === 'setSpeak' && S.settings.speak) speak('Okay, ich lese meine Antworten ab jetzt vor.'); }));
 $('learnReset').onclick = () => { snap(); S.learn = LDEF(); save(); renderSettings(); toast('Gelerntes zurückgesetzt.', true); };
 
