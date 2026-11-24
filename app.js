@@ -3,6 +3,8 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Datum in Ortszeit (nicht UTC), z. B. „2026-11-24“ – sonst rutscht kurz nach Mitternacht alles auf gestern.
+const localDay = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const P = window.HParser, norm = P.norm, cap = P.cap;
 const KEY = 'haushalt-v2', KKEY = 'haushalt-ai';
@@ -17,7 +19,7 @@ S.learn = Object.assign(LDEF(), S.learn || {});
 S.settings = Object.assign({ ask: true, speak: false, suggest: true, micMode: 'auto', palette: 'blau', diet: 'vegan', groupShop: true }, S.settings || {});
 S.plan = S.plan || {}; S.stats = Object.assign({ used: {}, wasted: {} }, S.stats || {}); S.hero = Object.assign({ points: 0, days: [] }, S.hero || {});
 delete S.settings.kbdDictation;
-const APP_VERSION = '2.1 (24.11.2026)';
+const APP_VERSION = '2.1.1 (24.11.2026)';
 let undoSnap = null;
 function snap() { undoSnap = JSON.stringify(S); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Speichern fehlgeschlagen – Speicher voll?'); } render(); }
@@ -67,7 +69,7 @@ function addPantry(p) {
   if (!p.name) return 'none'; p.name = cap(aliasOf(p.name));
   const ex = S.pantry.find(x => (p.code && x.code === p.code) || (!p.code && !x.code && norm(x.name) === norm(p.name)));
   if (ex) { ex.n = (+ex.n || 1) + (+p.n || 1); ['exp', 'loc', 'qty', 'brand', 'info', 'cat'].forEach(k => { if (p[k]) ex[k] = p[k]; }); return 'more'; }
-  S.pantry.push(Object.assign({ id: uid(), name: '', brand: '', qty: '', n: 1, cat: '', exp: '', code: '', loc: 'Vorratsschrank', info: '', added: new Date().toISOString().slice(0, 10) }, p, { n: +p.n || 1 }));
+  S.pantry.push(Object.assign({ id: uid(), name: '', brand: '', qty: '', n: 1, cat: '', exp: '', code: '', loc: 'Vorratsschrank', info: '', added: localDay() }, p, { n: +p.n || 1 }));
   return 'new';
 }
 function rememberProduct(p) { if (!p.code) return; S.catalog[p.code] = { check: p.check || null, name: p.name, brand: p.brand, qty: p.qty, cat: p.cat, loc: p.loc, info: p.info, img: p.img || (S.catalog[p.code] || {}).img || '' }; }
@@ -93,10 +95,10 @@ function completeTodo(t) {
 }
 
 /* ================= Heldenpunkte & Bilanz ================= */
-const monthKey = () => new Date().toISOString().slice(0, 7);
+const monthKey = () => localDay().slice(0, 7);
 function countStat(kind, n) { const m = monthKey(); S.stats[kind][m] = (S.stats[kind][m] || 0) + (n || 1); }
-function addPoints(n) { S.hero.points = (S.hero.points || 0) + n; const t = new Date().toISOString().slice(0, 10); if (!S.hero.days.includes(t)) { S.hero.days.push(t); if (S.hero.days.length > 90) S.hero.days.shift(); } }
-function streak() { let n = 0; const d = new Date(); for (;;) { const k = d.toISOString().slice(0, 10); if (S.hero.days.includes(k)) { n++; d.setDate(d.getDate() - 1); } else break; } return n; }
+function addPoints(n) { S.hero.points = (S.hero.points || 0) + n; const t = localDay(); if (!S.hero.days.includes(t)) { S.hero.days.push(t); if (S.hero.days.length > 90) S.hero.days.shift(); } }
+function streak() { let n = 0; const d = new Date(); for (;;) { const k = localDay(d); if (S.hero.days.includes(k)) { n++; d.setDate(d.getDate() - 1); } else break; } return n; }
 const LEVELS = [[0, 'Lehrling'], [50, 'Helfer'], [150, 'Held'], [400, 'Superheld'], [1000, 'Legende']];
 function level() { const p = S.hero.points || 0; let i = 0; LEVELS.forEach((l, k) => { if (p >= l[0]) i = k; }); return { n: i + 1, name: LEVELS[i][1], next: LEVELS[i + 1] ? LEVELS[i + 1][0] : null }; }
 function celebrate(msg) {
@@ -111,7 +113,7 @@ const WASTE_TIPS = ['Tipp: Was bald abläuft, wandert auf „Heute“ – mit Re
 
 /* ================= Lernen (läuft lokal bei jeder Nutzung) ================= */
 const L = () => S.learn;
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => localDay();
 function aliasOf(name) { const a = L().aliases[norm(name)]; return a || name; }
 function learnBuy(name) {
   const k = norm(name); if (!k) return;
@@ -155,7 +157,7 @@ function showAsk() {
 }
 function speak(t) { if (!S.settings.speak || !t || !window.speechSynthesis) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t.replace(/[🛒📦📝✓−]/g, '')); u.lang = 'de-DE'; u.rate = 1.05; speechSynthesis.speak(u); } catch (e) {} }
 function atDay(addDays, h, m) { const d = new Date(); d.setDate(d.getDate() + addDays); d.setHours(h, m || 0, 0, 0); const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(h) + ':' + p(m || 0); }
-function plusDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+function plusDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return localDay(d); }
 function followUps(created) {
   if (!S.settings.ask) return;
   created.todos.forEach(t => {
@@ -368,7 +370,7 @@ function checkReminders() {
   const now = Date.now(); let ch = false;
   S.todos.forEach(t => { if (t.done || !t.due || t.notified) return; const at = new Date(t.due).getTime() - (+t.remind || 0) * 6e4;
     if (now >= at) { t.notified = true; ch = true; if (now - at < 6 * 36e5) notify(t.title, fmtDT(t.due)); } });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDay();
   if (S.expCheck !== today) { const soon = S.pantry.filter(p => { const d = daysUntil(p.exp); return d !== null && d >= 0 && d <= 1; }); S.expCheck = today; ch = true;
     if (soon.length) notify('Bald ablaufend', soon.map(p => p.name).join(', ')); }
   if (ch) save();
@@ -786,7 +788,7 @@ $('testKey').onclick = async () => { $('keyState').textContent = 'teste …'; tr
 function applyAIui() { $('aiRec').hidden = !AI.key; }
 $('exportBtn').onclick = async () => {
   const data = JSON.stringify(Object.assign({ app: 'haushalt', version: 2, exported: new Date().toISOString() }, S), null, 1);
-  const name = 'alltagsheld-sicherung-' + new Date().toISOString().slice(0, 10) + '.json';
+  const name = 'alltagsheld-sicherung-' + localDay() + '.json';
   try { const file = new File([data], name, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Alltagsheld-Sicherung' }); return; } } catch (e) { if (e.name === 'AbortError') return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' })); a.download = name; a.click();
 };
@@ -809,7 +811,10 @@ $('pasteBtn').onclick = async () => {
   catch (e) { $('cmd').focus(); toast('Einfügen nicht erlaubt – halte im Textfeld gedrückt und wähle „Einsetzen“.'); }
 };
 (() => { const qp = new URLSearchParams(location.search), qc = qp.get('cmd') || qp.get('text');
-  if (qc) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {} setTimeout(() => runCommand(qc), 400); } })();
+  // Befehle aus Links nicht blind ausführen – ein fremder Link könnte sonst Daten ändern. Erst nachfragen.
+  if (qc) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+    const t = qc.trim().slice(0, 300); if (!t) return; $('cmd').value = t;
+    setTimeout(() => ask('Befehl aus Link ausführen: „' + t + '“?', [{ label: 'Ausführen', fn: () => runCommand(t) }, { label: 'Abbrechen', fn: () => { $('cmd').value = ''; } }], true), 400); } })();
 $('setPalette').addEventListener('change', () => { S.settings.palette = $('setPalette').value; applyPalette(); save(); });
 $('setDiet').addEventListener('change', () => { S.settings.diet = $('setDiet').value; save(); $('recList').innerHTML = ''; });
 
