@@ -26,6 +26,27 @@ Es gibt eine Alternative ohne GitHub: Auf app.netlify.com/drop ziehst du den Ord
 4. Beim ersten Scannen fragt das iPhone, ob die App die Kamera benutzen darf. Tipp auf **Erlauben**. Beim ersten Mikrofon-Tippen fragt es nach dem Mikrofon.
 5. Unter **Mehr**, dann **Mitteilungen erlauben**, schaltest du Erinnerungen ein, die erscheinen, solange die App läuft.
 
+## Neu in Version 2
+
+- **Startseite „Heute“** mit deinen Aufgaben, dem Essen des Tages, bald Ablaufendem, Kaufvorschlägen, Reste-Bilanz und Saison-Gemüse.
+- **Heldenpunkte:** Punkte fürs Abhaken, Erledigen, Kochen und Retten von Lebensmitteln, mit Stufen vom Lehrling bis zur Legende. Wenn Liste oder Tagesaufgaben erledigt sind, gibt es Konfetti.
+- **Produkt-Check beim Scannen:** vegan oder nicht, Palmöl, Umweltbewertung (Eco-Score), Verpackung, Herkunft und Siegel, mit Warnung passend zu deiner Ernährung (unter **Mehr**).
+- **Wischen:** In den Listen nach rechts zum Abhaken bzw. Verbrauchen, nach links zum Löschen.
+- **Einkaufsliste nach Laden-Bereichen** (Obst & Gemüse, Kühlregal …), umschaltbar.
+- **Wiederkehrende Aufgaben und Putzplan:** „Jeden Montag Müll rausbringen“, „Alle 2 Wochen Bad putzen abwechselnd Anna und Tom“. Nach dem Erledigen legt die App den nächsten Termin an, und die nächste Person ist dran.
+- **Wochenplan:** Bei einem Rezept auf „📅 Planen“ tippen. „Einkaufsliste aus Plan“ setzt alles Fehlende auf die Liste.
+- **Koch-Timer:** In der Zubereitung auf ⏱ tippen.
+- **70 Rezepte, davon 41 vegan**, mit Filtern für eiweißreich, Frühstück, Vorkochen und Saison.
+- **Reste-Bilanz:** Im Vorrat bei einem Produkt auf „🗑 Weggeworfen“ tippen. Abgelaufenes, das du löschst, zählt automatisch mit.
+- **Farben:** Blau & Gelb, Grün & Tomate oder Nacht (unter **Mehr**).
+
+## Siri-Kurzbefehl einrichten
+
+1. Öffne die App **Kurzbefehle** und tipp auf **+**.
+2. Füge nacheinander diese Aktionen hinzu: **Text diktieren**, **In Zwischenablage kopieren** und **App öffnen**. Wähle bei „App öffnen“ Alltagsheld, falls es in der Liste steht.
+3. Nenne den Kurzbefehl **Alltagsheld**.
+4. Sag dann „Hey Siri, Alltagsheld“, sprich deinen Befehl und tipp in der App oben auf **📋**.
+
 ## Was offline geht
 
 Einkaufsliste, Vorrat, To-dos, Rezeptvorschläge (55 eingebaute Rezepte, davon 26 vegan) und das Verstehen von Sprachbefehlen laufen alle ohne Internet. Auch der Barcode-Scanner funktioniert offline, und Produkte, die du schon einmal gescannt hast, erkennt er ohne Internet wieder.

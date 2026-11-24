@@ -59,8 +59,24 @@
     ['Gemüse-Paella', 40, 2, ['Reis|Paellareis|Risottoreis', 'Paprika', 'Erbsen', 'Tomaten', 'Zwiebel', 'Brühe|Gemüsebrühe'], ['Zwiebel und Paprika in einer großen Pfanne anbraten, Reis kurz mitrösten.', 'Tomaten, Paprikapulver (oder Safran) und 700 ml Brühe dazu.', '20 Minuten ohne Rühren garen, Erbsen in den letzten 5 Minuten dazu.']],
     ['Tofu-Reis-Bowl', 25, 2, ['Tofu', 'Reis', 'Edamame|Erbsen|Brokkoli', 'Gurke|Karotte|Rotkohl', 'Sojasauce|Sojasoße'], ['Reis kochen, Tofu in Würfeln knusprig braten.', 'Gemüse schneiden bzw. Edamame kurz garen.', 'Alles in Schüsseln anrichten, mit Sojasauce und Sesam toppen.']],
     ['Pesto-Nudeln mit Gemüse', 20, 2, ['Nudeln|Spaghetti|Pasta', 'Zucchini', 'Cherrytomaten|Tomaten', 'Basilikum', 'Pinienkerne|Nüsse|Sonnenblumenkerne'], ['Nudeln kochen.', 'Basilikum mit Kernen, Öl, Knoblauch und Salz zu Pesto mixen.', 'Zucchini und Tomaten anbraten, mit Nudeln und Pesto mischen.']],
+    // ---- vegan: eiweißreich, Vorkochen, Frühstück, Winter-Saison ----
+    ['Tempeh-Bowl mit Erdnusssoße', 25, 2, ['Tempeh|Tofu', 'Reis|Quinoa', 'Brokkoli|Edamame|Spinat', 'Erdnussbutter|Erdnussmus', 'Sojasauce|Sojasoße'], ['Reis oder Quinoa kochen.', 'Tempeh in Scheiben schneiden und in Öl goldbraun braten, mit Sojasauce ablöschen.', 'Gemüse kurz dämpfen.', 'Erdnussbutter mit Sojasauce, Limette und warmem Wasser verrühren, alles in Schüsseln anrichten.'], 'protein mealprep'],
+    ['Linsen-Salat mit Ofengemüse', 35, 2, ['Linsen|Belugalinsen|Tellerlinsen', 'Paprika|Zucchini|Süßkartoffel|Kürbis', 'Rote Zwiebel|Zwiebel', 'Rucola|Spinat|Feldsalat', 'Senf'], ['Linsen in ungesalzenem Wasser bissfest kochen (ca. 20 Minuten).', 'Gemüse würfeln und 25 Minuten bei 200 °C rösten.', 'Dressing aus Senf, Essig, Öl, Salz und Pfeffer rühren.', 'Alles mischen – hält sich 3 Tage im Kühlschrank.'], 'protein mealprep'],
+    ['Kichererbsen-Salat to go', 15, 2, ['Kichererbsen', 'Gurke|Salatgurke', 'Tomaten|Cherrytomaten', 'Petersilie|Minze', 'Zitrone'], ['Kichererbsen abspülen.', 'Gemüse und Kräuter klein schneiden.', 'Mit Zitronensaft, Öl, Salz und Kreuzkümmel mischen – ideal zum Mitnehmen.'], 'protein mealprep'],
+    ['Edamame-Nudeln mit Brokkoli', 20, 2, ['Edamame-Nudeln|Linsennudeln|Kichererbsennudeln|Nudeln', 'Brokkoli', 'Knoblauch', 'Hefeflocken|Cashews'], ['Nudeln kochen, Brokkoli die letzten 4 Minuten mitkochen.', 'Knoblauch in Olivenöl anbraten.', 'Alles mischen, mit Hefeflocken, Salz und Zitronenabrieb würzen.'], 'protein'],
+    ['Seitan-Geschnetzeltes', 30, 2, ['Seitan|Sojaschnetzel|Tofu', 'Champignons|Pilze', 'Zwiebel', 'Hafersahne|Sojasahne|Pflanzensahne', 'Nudeln|Reis|Kartoffeln'], ['Sojaschnetzel ggf. in heißer Brühe 10 Minuten einweichen und ausdrücken.', 'Seitan bzw. Schnetzel scharf anbraten, Pilze und Zwiebel dazu.', 'Mit Pflanzensahne ablöschen, mit Paprika und Senf würzen, 5 Minuten köcheln.'], 'protein'],
+    ['Rote-Linsen-Gemüse-Curry zum Vorkochen', 35, 2, ['Rote Linsen|Linsen', 'Kokosmilch', 'Süßkartoffel|Kartoffeln|Kürbis', 'Spinat|Grünkohl', 'Currypaste|Curry|Currypulver', 'Zwiebel'], ['Zwiebel und Currypaste anbraten.', 'Süßkartoffel würfeln, mit Linsen, Kokosmilch und 400 ml Wasser 20 Minuten köcheln.', 'Spinat unterheben. Portionsweise einfrieren oder 4 Tage im Kühlschrank aufbewahren.'], 'protein mealprep'],
+    ['Chia-Pudding', 5, 2, ['Chiasamen', 'Haferdrink|Sojadrink|Pflanzenmilch|Kokosmilch', 'Beeren|Banane|Mango|Apfel'], ['3 EL Chiasamen mit 200 ml Pflanzendrink verrühren.', 'Nach 5 Minuten noch einmal umrühren, dann über Nacht kühl stellen.', 'Mit Obst toppen.'], 'fruehstueck mealprep'],
+    ['Avocado-Toast mit Kichererbsen', 10, 2, ['Brot|Vollkornbrot|Toast', 'Avocado', 'Kichererbsen|Tomaten', 'Zitrone'], ['Brot rösten.', 'Avocado mit Zitronensaft, Salz und Chili zerdrücken.', 'Aufs Brot streichen, mit Kichererbsen oder Tomaten belegen.'], 'fruehstueck protein'],
+    ['Smoothie-Bowl', 10, 2, ['Banane|Bananen', 'Beeren|Tiefkühlbeeren', 'Haferdrink|Sojadrink|Pflanzenmilch|Sojajoghurt', 'Haferflocken|Granola|Nüsse'], ['Gefrorene Beeren, Banane und etwas Pflanzendrink cremig mixen.', 'In eine Schüssel füllen.', 'Mit Haferflocken, Nüssen und Obst toppen.'], 'fruehstueck'],
+    ['Vegane Pancakes', 20, 2, ['Mehl', 'Haferdrink|Sojadrink|Pflanzenmilch', 'Backpulver', 'Banane|Apfelmus'], ['200 g Mehl, 1 TL Backpulver, Prise Salz und 1 EL Zucker mischen.', '250 ml Pflanzendrink und eine zerdrückte Banane unterrühren.', 'Kleine Pancakes in wenig Öl von beiden Seiten goldbraun backen.'], 'fruehstueck'],
+    ['Grünkohl-Pfanne mit Räuchertofu', 30, 2, ['Grünkohl', 'Räuchertofu|Tofu', 'Kartoffeln|Kartoffel', 'Zwiebel', 'Senf'], ['Kartoffeln kochen und würfeln.', 'Räuchertofu und Zwiebel knusprig braten, Kartoffeln dazu.', 'Grünkohl klein zupfen, 5 Minuten mitbraten, mit Senf, Salz und Muskat abschmecken.'], 'saison protein'],
+    ['Rosenkohl-Pasta', 25, 2, ['Rosenkohl', 'Nudeln|Pasta', 'Knoblauch', 'Walnüsse|Nüsse', 'Zitrone'], ['Nudeln kochen.', 'Rosenkohl halbieren und mit der Schnittfläche nach unten scharf anbraten.', 'Knoblauch und Walnüsse kurz mitrösten, mit Nudeln, Zitronenabrieb und Olivenöl mischen.'], 'saison'],
+    ['Rote-Bete-Risotto', 35, 2, ['Rote Bete', 'Risottoreis|Reis', 'Zwiebel', 'Brühe|Gemüsebrühe', 'Walnüsse|Meerrettich'], ['Zwiebel andünsten, Reis glasig anschwitzen.', 'Rote Bete reiben, dazugeben und nach und nach heiße Brühe angießen (ca. 20 Minuten).', 'Mit Meerrettich oder Walnüssen servieren.'], 'saison'],
+    ['Pastinaken-Suppe', 30, 2, ['Pastinaken|Pastinake', 'Kartoffeln|Kartoffel', 'Zwiebel', 'Brühe|Gemüsebrühe', 'Hafersahne|Kokosmilch'], ['Gemüse schälen und würfeln, Zwiebel andünsten.', 'Mit 800 ml Brühe 20 Minuten köcheln.', 'Pflanzensahne dazu, fein pürieren, mit Muskat abschmecken.'], 'saison'],
+    ['Rotkohl-Bowl mit Bratkartoffeln', 35, 2, ['Rotkohl', 'Kartoffeln|Kartoffel', 'Apfel|Äpfel', 'Walnüsse|Nüsse', 'Feldsalat|Salat'], ['Kartoffeln würfeln und knusprig braten.', 'Rotkohl fein hobeln, mit Apfel, Essig, Öl und Salz durchkneten.', 'Mit Feldsalat, Kartoffeln und Walnüssen anrichten.'], 'saison'],
   ];
-  const recipes = R.map(([title, time, veg, ing, steps]) => ({ title, time, veg: veg >= 1, vegan: veg === 2, ing: ing.map(i => i.split('|')), steps }));
+  const recipes = R.map(([title, time, veg, ing, steps, tags]) => ({ title, time, veg: veg >= 1, vegan: veg === 2, ing: ing.map(i => i.split('|')), steps, tags: tags || '' }));
   const norm = s => String(s || '').toLowerCase().normalize('NFC').replace(/[^a-zäöüß ]/g, ' ').replace(/\s+/g, ' ').trim();
   const stem = s => s.replace(/(en|n|e|s)$/, '');
 
@@ -80,24 +96,45 @@
     prefs = prefs || {};
     const pn = pantry.map(p => { const n = norm(p.name); return { n, words: n.split(' '), soon: p.soon, name: p.name }; });
     hint = norm(hint);
+    const wantTag = /eiwei|protein/.test(hint) ? 'protein' : /vorkoch|meal/.test(hint) ? 'mealprep' : /frühstück|fruehstueck/.test(hint) ? 'fruehstueck' : '';
+    const season = (prefs.season || []).map(norm), wantSeason = /saison/.test(hint);
     const wantVegan = /vegan|pflanzlich/.test(hint), wantVeg = wantVegan || /vegetar|ohne fleisch/.test(hint), quick = /schnell|wenig zeit|zügig|fix/.test(hint);
-    const words = hint.split(' ').filter(w => w.length > 3 && !/vegetar|vegan|pflanzlich|schnell|ohne|fleisch|bitte|etwas|heute/.test(w));
+    const words = hint.split(' ').filter(w => w.length > 3 && !/vegetar|vegan|pflanzlich|schnell|ohne|fleisch|bitte|etwas|heute|eiwei|protein|vorkoch|meal|frühstück|saison|reich/.test(w));
     const out = [];
     for (const r of recipes) {
+      if (wantTag && !r.tags.includes(wantTag)) continue;
+      const inSeason = season.length && r.ing.some(a => a.some(x => season.includes(norm(x))));
+      if (wantSeason && !inSeason) continue;
       if (wantVegan && !r.vegan) continue;
       if (wantVeg && !r.veg) continue;
       const rs = (prefs.recipe || {})[r.title] || 0; if (rs <= -2) continue;
       if (quick && r.time > 25) continue;
       const uses = [], missing = []; let soon = 0;
       r.ing.forEach(alts => { const hit = has(pn, alts); if (hit) { uses.push(hit.name); if (hit.soon) soon++; } else missing.push(alts[0]); });
-      let score = uses.length / r.ing.length + soon * 0.25 + rs * 0.2;
+      let score = uses.length / r.ing.length + soon * 0.25 + rs * 0.2 + (inSeason ? 0.15 : 0) + (wantTag || wantSeason ? 0.3 : 0);
       const tags = prefs.tags || {}; score += 0.05 * ((r.vegan ? tags.vegan || 0 : 0) + (r.veg ? tags.veg || 0 : tags.meat || 0) + (r.time <= 20 ? tags.quick || 0 : 0));
       if (words.length && words.some(w => norm(r.title).includes(stem(w)) || r.ing.some(a => a.some(x => norm(x).includes(stem(w)))))) score += 0.5;
-      if (!uses.length && !words.length && !wantVeg && !quick) continue;
-      out.push({ title: r.title, time: r.time + ' Min.', veg: r.veg, vegan: r.vegan, liked: rs > 0, uses: [...new Set(uses)], missing, steps: r.steps, score, soon });
+      if (!uses.length && !words.length && !wantVeg && !quick && !wantTag && !wantSeason) continue;
+      out.push({ title: r.title, time: r.time + ' Min.', veg: r.veg, vegan: r.vegan, liked: rs > 0, season: !!inSeason, tags: r.tags, ing: r.ing, uses: [...new Set(uses)], missing, steps: r.steps, score, soon });
     }
     out.sort((a, b) => b.score - a.score || a.missing.length - b.missing.length);
     return out.slice(0, limit || 8);
   }
-  root.HRecipes = { suggest, recipes };
+  // Saisonkalender Deutschland (regional, inkl. Lagerware) – Monat 1–12
+  const SEASON = {
+    1: 'Grünkohl Rosenkohl Lauch Wirsing Rotkohl Weißkohl Feldsalat Chicorée Pastinaken Rote_Bete Karotten Kartoffeln Zwiebeln Sellerie Äpfel Birnen',
+    2: 'Grünkohl Rosenkohl Lauch Wirsing Rotkohl Weißkohl Feldsalat Chicorée Pastinaken Rote_Bete Karotten Kartoffeln Zwiebeln Sellerie Äpfel',
+    3: 'Lauch Feldsalat Chicorée Rote_Bete Karotten Kartoffeln Zwiebeln Bärlauch Spinat Äpfel',
+    4: 'Bärlauch Spinat Radieschen Rhabarber Spargel Frühlingszwiebeln Kartoffeln Karotten Äpfel',
+    5: 'Spargel Rhabarber Spinat Radieschen Kohlrabi Salat Frühlingszwiebeln Erdbeeren',
+    6: 'Erdbeeren Spargel Kohlrabi Zucchini Erbsen Brokkoli Blumenkohl Salat Gurke Kirschen Kartoffeln',
+    7: 'Zucchini Tomaten Gurke Paprika Bohnen Brokkoli Blumenkohl Mais Kirschen Himbeeren Heidelbeeren Kartoffeln',
+    8: 'Tomaten Paprika Zucchini Aubergine Mais Bohnen Gurke Brokkoli Pflaumen Brombeeren Äpfel Kartoffeln',
+    9: 'Kürbis Hokkaido Tomaten Paprika Zucchini Brokkoli Lauch Mais Bohnen Pflaumen Äpfel Birnen Weintrauben Pilze Champignons',
+    10: 'Kürbis Hokkaido Lauch Rotkohl Weißkohl Rosenkohl Rote_Bete Pastinaken Karotten Kartoffeln Pilze Champignons Äpfel Birnen Feldsalat',
+    11: 'Grünkohl Rosenkohl Kürbis Hokkaido Lauch Rotkohl Wirsing Rote_Bete Pastinaken Feldsalat Sellerie Karotten Kartoffeln Zwiebeln Äpfel Birnen',
+    12: 'Grünkohl Rosenkohl Lauch Rotkohl Wirsing Rote_Bete Pastinaken Feldsalat Chicorée Karotten Kartoffeln Zwiebeln Äpfel'
+  };
+  const seasonFor = m => SEASON[m].split(' ').map(x => x.replace('_', ' '));
+  root.HRecipes = { suggest, recipes, seasonFor };
 })(typeof window !== 'undefined' ? window : globalThis);

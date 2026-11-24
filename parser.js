@@ -150,14 +150,21 @@
         splitItems(rest).forEach(x => itemOrTodo(x, actions, now, y => { const it = parseItem(y); if (it.name) actions.push({ type: 'add_pantry', name: it.name, qty: it.qty, loc }); }));
         continue;
       }
-      const w = parseWhen(c, now);
+      // Wiederholung: täglich, wöchentlich, jeden Montag, alle 2 Wochen, monatlich
+      let repeat = '', cc = c;
+      const RP = [[/\b(täglich|jeden tag)\b/i, 'daily'], [/\b(alle\s+(2|zwei)\s+wochen|zweiwöchentlich|jede zweite woche)\b/i, 'biweekly'], [/\b(wöchentlich|jede woche|einmal die woche)\b/i, 'weekly'], [/\b(monatlich|jeden monat|einmal im monat)\b/i, 'monthly'], [/\bjeden\s+(?=(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b)/i, 'weekly']];
+      for (const [re, v] of RP) { if (re.test(cc)) { repeat = repeat || v; cc = cc.replace(re, ' '); } }
+      const who = (cc.match(/\b(?:abwechselnd|im wechsel)\s+(?:zwischen\s+)?([A-ZÄÖÜ][\wäöüß]+(?:\s*(?:,|und)\s*[A-ZÄÖÜ][\wäöüß]+)+)/) || [])[1];
+      if (who) cc = cc.replace(/\b(?:abwechselnd|im wechsel)\s+(?:zwischen\s+)?[A-ZÄÖÜ][\wäöüß]+(?:\s*(?:,|und)\s*[A-ZÄÖÜ][\wäöüß]+)+/, ' ');
+      const w = parseWhen(cc, now);
+      if (repeat && !w.due) { const d = new Date(now || Date.now()); d.setHours(9, 0, 0, 0); if (d < new Date(now || Date.now())) d.setDate(d.getDate() + 1); const p2 = n => String(n).padStart(2, '0'); w.due = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + 'T09:00'; }
       const todoWords = /\b(erinner\w*|termin|to-?do|aufgabe|nicht vergessen|denk dran|denke daran|muss ich|ich muss|anrufen|anzurufen|abholen|bezahlen|zahlen|überweisen|schicken|schreiben|kündigen|buchen|reservieren|vereinbaren|zahnarzt|arzt|friseur|müll|wäsche|putzen|staubsaugen|gießen|treffen|meeting|geburtstag)\b/;
-      if (!isShop && (w.due || todoWords.test(l))) {
+      if (!isShop && (w.due || repeat || todoWords.test(l))) {
         let title = w.rest.replace(/\b(erinnere?|erinner)\s+(mich|uns)\s*(bitte\s*)?(daran|an)?\s*,?\s*(dass|daß)?\s*(ich|wir)?\b/gi, ' ')
           .replace(/\b(to-?do|aufgabe|termin|notiz)\s*:?\s*/gi, ' ').replace(/\b(erinnern|erinnere|erinner|erinnerung)\b/gi, ' ').replace(/\b(ich muss|muss ich|wir müssen|nicht vergessen|denk dran|denke daran|bitte|noch)\b/gi, ' ')
           .replace(/\b(dass|daß)\s+(ich|wir)\b/gi, ' ').replace(/^\s*(zu|an|am|um|mich|,)\s+/i, '').replace(/\s*,\s*/g, ' ').replace(/\s+(muss|müssen|soll|sollte)\s*$/i, '').replace(/\s+/g, ' ').trim();
         title = title.replace(/\bzu\s+(\w+)$/i, '$1').replace(/^(\w+)\s+(an|ab)zu(\w+)$/i, '$1 $2$3');
-        if (title) actions.push({ type: 'add_todo', title: cap(title), due: w.due, remind: w.remind ?? (w.allDay ? 0 : 30) });
+        if (title) actions.push(Object.assign({ type: 'add_todo', title: cap(title), due: w.due, remind: w.remind ?? (w.allDay ? 0 : 30) }, repeat ? { repeat } : {}, who ? { who: who.split(/\s*(?:,|und)\s*/).filter(Boolean) } : {}));
         continue;
       }
       const rest = c.replace(SHOP_FILL, ' ').replace(/\s+/g, ' ');
