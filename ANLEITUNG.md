@@ -75,6 +75,20 @@ Mit einem eigenen Claude-API-Schlüssel (console.anthropic.com, Abrechnung nach 
 
 Den Schlüssel trägst du unter **Mehr** ein, dann **KI-Zusatz**. Ohne Schlüssel funktioniert alles andere genauso.
 
+**Warum das etwas kostet:** Die KI läuft nicht auf deinem iPhone, sondern auf den Rechnern von Anthropic. Jede Anfrage braucht dort Rechenleistung, und die wird nach Menge abgerechnet. Ein normales Claude-Abo (z. B. Pro) deckt das nicht ab, die Programmierschnittstelle (API) wird getrennt bezahlt.
+
+**Wie viel ungefähr:** Mit dem voreingestellten, günstigen Modell kostet ein Sprachbefehl etwa 0,01 Cent, ein Verpackungsfoto etwa 0,03 Cent und vier neue Rezepte etwa 0,1 Cent. Auch bei täglicher Nutzung bleibt das meist unter 1 € im Monat. Du lädst vorher Guthaben auf und kannst nie mehr ausgeben als aufgeladen ist.
+
+## Auf Android installieren
+
+1. Öffne die Adresse in **Chrome**.
+2. Tipp oben rechts auf die **drei Punkte** und dann auf **App installieren** oder **Zum Startbildschirm hinzufügen**.
+3. Für Termine nimmst du bei den To-dos am besten den Knopf **Google**. Er öffnet den Termin direkt in Google Kalender.
+
+## Andere Personen nutzen die App
+
+Jeder, der die Adresse kennt, kann die App auf seinem eigenen Handy installieren. Jedes Handy speichert seine eigenen Daten, du siehst also nichts von den anderen und sie nichts von dir. Wer den KI-Zusatz will, trägt auf seinem Handy einen eigenen Schlüssel ein und zahlt selbst. Für dich entstehen keine Kosten, solange du deinen Schlüssel nicht weitergibst oder auf fremden Handys einträgst.
+
 ## Daten sichern
 
 Unter **Mehr**, dann **Sicherung speichern**, sicherst du deine Daten, z. B. in iCloud Drive. Mit „Sicherung laden“ holst du sie zurück, auch auf ein neues iPhone.

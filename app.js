@@ -14,7 +14,7 @@ let AI = { key: '', model: 'claude-haiku-5-5' };
 try { Object.assign(AI, JSON.parse(localStorage.getItem(KKEY) || '{}')); } catch (e) {}
 const LDEF = () => ({ buys: {}, order: {}, aliases: {}, recipe: {}, tags: {}, dismissed: {}, trip: { at: 0, idx: 0 } });
 S.learn = Object.assign(LDEF(), S.learn || {});
-S.settings = Object.assign({ ask: true, speak: false, suggest: true }, S.settings || {});
+S.settings = Object.assign({ ask: true, speak: false, suggest: true, kbdDictation: false }, S.settings || {});
 let undoSnap = null;
 function snap() { undoSnap = JSON.stringify(S); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Speichern fehlgeschlagen – Speicher voll?'); } render(); }
@@ -237,10 +237,16 @@ function buildICS(list) {
   return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Alltagsheld//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', ...ev, 'END:VCALENDAR'].join('\r\n');
 }
 function openICS(list) {
-  const blob = new Blob([buildICS(list)], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob), a = document.createElement('a');
-  a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  const ics = buildICS(list);
+  // Bevorzugt: eine echte .ics-Adresse dieser App (liefert der Service Worker) – die erkennt iPhone und Android als Kalendertermin.
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    const url = new URL('termin.ics', location.href); url.searchParams.set('d', ics);
+    location.href = url.href; return;
+  }
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = 'termin.ics'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 60000);
 }
 function gcal(t) { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Berlin';
   return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(t.title) + '&dates=' + icsDate(t.due) + '/' + icsDate(t.due, 30) + '&ctz=' + encodeURIComponent(tz) + '&details=' + encodeURIComponent('Aus Alltagsheld'); }
@@ -316,19 +322,55 @@ async function runCommand(text) {
 $('cmdForm').addEventListener('submit', e => { e.preventDefault(); $('cmd').blur(); runCommand($('cmd').value); });
 $('cmd').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('cmd').blur(); runCommand($('cmd').value); } });
 
-/* Spracherkennung */
+/* Spracherkennung
+   iOS hat einen Fehler: Wird für jede Aufnahme ein neues Erkennungs-Objekt erzeugt, klappt es oft nur einmal.
+   Darum nutzen wir EIN Objekt immer wieder. Klappt es trotzdem nicht, schaltet die App auf das Diktieren der Tastatur um. */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, listening = false, base = '', finalTxt = '';
-$('mic').addEventListener('click', () => {
-  if (!SR) { $('micHint').textContent = 'Tipp ins Textfeld und nutze das Mikrofon unten auf der iPhone-Tastatur.'; $('cmd').focus(); return; }
-  if (listening) { rec.stop(); return; }
+let rec = null, listening = false, starting = false, base = '', finalTxt = '', hadError = false, srFails = 0, startTimer = null;
+const IDLE_HINT = 'Mikro antippen und sprechen – oder tippen und OK drücken.';
+function kbdMode() { return !SR || !!S.settings.kbdDictation; }
+function keyboardDictation(msg) {
+  $('micHint').hidden = false;
+  $('micHint').textContent = msg || 'Tipp jetzt unten auf der Tastatur auf das Mikrofon 🎤 und sprich. Danach auf OK.';
+  $('cmd').focus();
+}
+function srFail(reason) {
+  srFails++; listening = starting = false; $('mic').classList.remove('on');
+  try { rec && rec.abort(); } catch (e) {}
+  rec = null;
+  if (srFails >= 2 && SR) { S.settings.kbdDictation = true; save(); keyboardDictation('Die Spracherkennung macht hier Probleme – ich nutze ab jetzt das Diktieren der Tastatur. Tipp unten auf der Tastatur auf 🎤. (Umstellbar unter „Mehr“.)'); return; }
+  keyboardDictation(reason || 'Das Mikrofon hat nicht reagiert. Tipp unten auf der Tastatur auf 🎤 oder versuch es gleich noch mal.');
+}
+function getRec() {
+  if (rec) return rec;
   rec = new SR(); rec.lang = 'de-DE'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
-  base = $('cmd').value.trim(); finalTxt = '';
-  rec.onstart = () => { listening = true; $('micHint').hidden = false; $('mic').classList.add('on'); $('micHint').textContent = 'Ich höre zu … (zum Beenden nochmal tippen)'; };
+  rec.onstart = () => { clearTimeout(startTimer); starting = false; listening = true; srFails = 0; $('micHint').hidden = false; $('mic').classList.add('on'); $('micHint').textContent = 'Ich höre zu … (zum Beenden nochmal tippen)'; };
   rec.onresult = ev => { let interim = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) { const r = ev.results[i]; if (r.isFinal) finalTxt += r[0].transcript + ' '; else interim += r[0].transcript; } $('cmd').value = (base ? base + ' ' : '') + finalTxt + interim; };
-  rec.onerror = ev => { $('micHint').textContent = /not-allowed|service-not-allowed/.test(ev.error) ? 'Mikrofon/Spracherkennung nicht erlaubt. Einstellungen → Safari → Mikrofon, oder die Diktiertaste der Tastatur nutzen.' : ev.error === 'no-speech' ? 'Nichts gehört – nochmal versuchen.' : 'Spracherkennung: ' + ev.error; };
-  rec.onend = () => { listening = false; $('mic').classList.remove('on'); if ($('micHint').textContent.startsWith('Ich höre')) $('micHint').textContent = 'Mikro antippen und sprechen – oder tippen und OK drücken.'; if (finalTxt.trim() || $('cmd').value.trim() !== base) runCommand($('cmd').value); };
-  try { rec.start(); } catch (e) { $('micHint').textContent = 'Spracherkennung konnte nicht starten – nutze die Diktiertaste der Tastatur.'; }
+  rec.onerror = ev => {
+    hadError = true;
+    if (ev.error === 'no-speech') { $('micHint').textContent = 'Nichts gehört – tipp nochmal aufs Mikro.'; return; }
+    if (ev.error === 'aborted') return;
+    srFail(/not-allowed|service-not-allowed/.test(ev.error) ? 'Mikrofon nicht freigegeben. Tipp unten auf der Tastatur auf 🎤 – das geht ohne Freigabe.' : undefined);
+  };
+  rec.onend = () => {
+    clearTimeout(startTimer); const was = listening; listening = starting = false; $('mic').classList.remove('on');
+    if ($('micHint').textContent.startsWith('Ich höre')) $('micHint').textContent = IDLE_HINT;
+    if (was && (finalTxt.trim() || $('cmd').value.trim() !== base)) runCommand($('cmd').value);
+    if (hadError) { rec = null; hadError = false; }   // nach einem Fehler beim nächsten Mal frisch beginnen
+  };
+  return rec;
+}
+$('mic').addEventListener('click', () => {
+  if (kbdMode()) { keyboardDictation(); return; }
+  if (listening || starting) { try { rec.stop(); } catch (e) {} return; }
+  base = $('cmd').value.trim(); finalTxt = ''; hadError = false; starting = true;
+  try { getRec().start(); }
+  catch (e) { // "already started" o. ä.: einmal frisch versuchen
+    try { rec && rec.abort(); } catch (x) {} rec = null;
+    try { getRec().start(); } catch (e2) { srFail(); return; }
+  }
+  clearTimeout(startTimer);
+  startTimer = setTimeout(() => { if (starting && !listening) srFail(); }, 4000);
 });
 
 /* ================= KI (optional) ================= */
@@ -506,7 +548,7 @@ $('aiRec').onclick = async () => {
 
 /* ================= Einstellungen ================= */
 function renderSettings() {
-  $('setAsk').checked = S.settings.ask; $('setSpeak').checked = S.settings.speak; $('setSuggest').checked = S.settings.suggest;
+  $('setKbd').checked = !!S.settings.kbdDictation; $('setAsk').checked = S.settings.ask; $('setSpeak').checked = S.settings.speak; $('setSuggest').checked = S.settings.suggest;
   const rh = Object.values(L().buys).filter(b => rhythm(b)).length, liked = Object.values(L().recipe).filter(v => v > 0).length, disl = Object.values(L().recipe).filter(v => v < 0).length;
   const tg = L().tags, pref = (tg.vegan || 0) > 1 ? 'vegan' : (tg.veg || 0) > (tg.meat || 0) + 1 ? 'vegetarisch' : (tg.meat || 0) > (tg.veg || 0) + 1 ? 'mit Fleisch' : 'noch offen';
   $('learnInfo').innerHTML = `Gelernt bisher: <b>${rh}</b> Kaufrhythmen · <b>${Object.keys(L().order).length}</b> Artikel in Laden-Reihenfolge · <b>${Object.keys(L().aliases).length}</b> Korrekturen · <b>${liked}</b> Lieblingsrezepte, <b>${disl}</b> abgelehnt · Essensvorliebe: ${pref}`;
@@ -534,6 +576,7 @@ $('importFile').addEventListener('change', async e => {
 });
 $('wipe').onclick = () => { if ($('wipe').dataset.sure) { snap(); S = { shopping: [], pantry: [], todos: [], catalog: {}, recipes: [], learn: LDEF(), settings: S.settings }; save(); renderSettings(); toast('Alle Daten gelöscht.', true); delete $('wipe').dataset.sure; $('wipe').textContent = 'Alle Daten löschen'; } else { $('wipe').dataset.sure = 1; $('wipe').textContent = 'Wirklich alles löschen? Nochmal tippen'; setTimeout(() => { delete $('wipe').dataset.sure; $('wipe').textContent = 'Alle Daten löschen'; }, 4000); } };
 
+$('setKbd').addEventListener('change', () => { S.settings.kbdDictation = $('setKbd').checked; srFails = 0; save(); });
 ['setAsk', 'setSpeak', 'setSuggest'].forEach(id => $(id).addEventListener('change', () => { S.settings.ask = $('setAsk').checked; S.settings.speak = $('setSpeak').checked; S.settings.suggest = $('setSuggest').checked; save(); if (id === 'setSpeak' && S.settings.speak) speak('Okay, ich lese meine Antworten ab jetzt vor.'); }));
 $('learnReset').onclick = () => { snap(); S.learn = LDEF(); save(); renderSettings(); toast('Gelerntes zurückgesetzt.', true); };
 
